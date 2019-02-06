@@ -13,6 +13,7 @@ params.q = "3,5"
 params.r = "10,20"
 params.s = 100000
 params.model = "Y~A+B+AB.H0.R"
+params.transf = "None"
 params.gen = "mvnorm"
 params.pub = "result"
 params.out = "simulation.tsv"
@@ -25,6 +26,7 @@ println """\
          r: ${params.r}
          s: ${params.s}
          model: ${params.model}
+         transf: ${params.transf}
          gen: ${params.gen}
          pub: ${params.pub}
          out: ${params.out}
@@ -57,7 +59,7 @@ process simulation {
     
     script:
     """
-    ${params.model} -q $q -r $r -s ${params.s} -m ${params.gen} -o "${q}.${r}.out"
+    ${params.model} -q $q -r $r -s ${params.s} -m ${params.gen} -t ${params.transf} -o "${q}.${r}.out"
     """
 }
 
