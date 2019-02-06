@@ -122,15 +122,9 @@ for (i in 1:S){
   # eigendecomposition and pv calculation
   e <- eigen(cov(R)*(n-1)/df.e, symmetric = T, only.values = T)$values
   pv.acc <- mapply(pv.f, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
-  pv.mt <- rbind(pv.mt, pv.acc[1,])
+  pv.mt <- rbind(pv.mt, c(pv.acc[1,],summary(manova(fit))$stats[,6][1:3]))
 }
 
-pv.df <- as.data.frame(pv.mt)
-
-o1 <- sum(pv.df$A < 0.05)/nrow(pv.df)
-o2 <- sum(pv.df$B < 0.05)/nrow(pv.df)
-o3 <- sum(pv.df$`A:B` < 0.05)/nrow(pv.df)
-
-write.table(data.frame(o1,o2,o3), file = output, sep = "\t", col.names = F, row.names = F, quote = F)
+write.table(t(colMeans(pv.mt < 0.05)), file = output, sep = "\t", col.names = F, row.names = F, quote = F)
 
 
