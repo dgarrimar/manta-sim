@@ -1,7 +1,6 @@
 /*
  * Asymptotic distribution of Anderson's test statistic in complex models
- * Simulation setting for H1
- * v1.0
+ * Simulation setting 
  * Diego Garrido Martín 
  */
 
