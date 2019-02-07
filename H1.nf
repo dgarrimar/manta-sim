@@ -36,12 +36,38 @@ println """\
          .stripIndent()
 
 /*
+ *  Expand parameters
+ */
+
+par_in = [params.q, params.r, params.d]
+par_l = par_in.size()
+par_out = [""]* par_l
+
+i = 0
+par_in.each {
+    if (it =~ /,/){
+        par_out[i] = it.tokenize(',')
+    } else if (it =~ /:/) {
+        def (start, end, step) = it.tokenize(':')
+        if(step?.trim()){ // not empty
+            par_out[i] = (start.toInteger()..end.toInteger()).step(step.toInteger()).toList()
+        }else{
+            par_out[i] = (start.toInteger()..end.toInteger()).toList()
+        }
+    } else {
+	par_out[i] = it
+    }
+i = i + 1
+}
+
+/*
  *  Create channels given parameters
  */
 
-q_ch = Channel.from(params.q.tokenize(","))
-r_ch = Channel.from(params.r.tokenize(","))
-d_ch = Channel.from(params.d.tokenize(","))
+
+q_ch = Channel.from(par_out[0])
+r_ch = Channel.from(par_out[1])
+d_ch = Channel.from(par_out[2])
 
 q_ch.combine(r_ch).combine(d_ch).set{grid_ch}
 
