@@ -81,16 +81,19 @@ for (i in 1:S){
     
     alpha <- rep(1/q, q)
     Y <- rdirichlet(n, alpha)
-    
-    s2d <- step2distance(alpha, ha, delta)
-    if(is.na(s2d$d)){stop("delta => out of the simplex")}
-    Y[B == 1,] <- rdirichlet(nrow(Y[B == 1,]), s2d$r)
-    
+
+    if (delta != 0){    
+      s2d <- step2distance(alpha, ha, delta)
+      if(is.na(s2d$d)){stop("delta => out of the simplex")}
+      Y[B == 1,] <- rdirichlet(nrow(Y[B == 1,]), s2d$r)
+    }
   } else if (modelSim == "mvnorm") {
     
     Y <- mvrnorm(n, mu = rep(1/q, q) , Sigma = diag(rep(1,q)))
-    Y[B == 1, 1] <- Y[B == 1, 1] + delta
     
+    if (delta != 0){
+      Y[B == 1, 1] <- Y[B == 1, 1] + delta
+    }
   } else {
     NA
   }
