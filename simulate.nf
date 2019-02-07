@@ -9,10 +9,10 @@
  *  Define parameters
  */
 
-params.q = "3,5"
-params.r = "10,20"
-params.d = "0.01,0.1"
-params.s = 100000
+params.q = 3
+params.r = 10
+params.d = 0
+params.s = 10000
 params.model = "Y~A+B+AB.H1.R"
 params.transf = "None"
 params.gen = "mvnorm"
