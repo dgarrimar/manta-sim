@@ -77,13 +77,13 @@ for (i in 1:S){
   
   if (modelSim == "dirichlet") {
 
-    ha <- c(1, rep(0, q-1))
+    h1 <- c(1, rep(0, q-1))
     
     alpha <- rep(1/q, q)
     Y <- rdirichlet(n, alpha)
 
     if (delta != 0){    
-      s2d <- step2distance(alpha, ha, delta)
+      s2d <- step2distance(alpha, h1, delta)
       if(is.na(s2d$d)){stop("delta => out of the simplex")}
       Y[B == 1,] <- rdirichlet(nrow(Y[B == 1,]), s2d$r)
     }
