@@ -2,8 +2,6 @@
 
 ## Evaluation of asymptotic Anderson's test in complex models
 ## Model: Y ~ A + B + AB, balanced
-## Simulating under H1
-## Metric of interest: Power
 
 ##  0. Parse arguments
 
