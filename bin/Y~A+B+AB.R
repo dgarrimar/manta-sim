@@ -55,7 +55,7 @@ library(car)
 library(MCMCpack)
 library(MASS)
 
-source("~/PhD/projects/sqtlseeker/paper/simul/bin/fx.R")
+source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simul/nf/bin/fx.R")
 
 ## 2. Define parameters 
 
