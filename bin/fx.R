@@ -79,3 +79,103 @@ pv.f <- function(f, lambda, df.i, df.e, acc = 1e-14){
   return(c(pv, acc))
 }
 
+label <- function(a, b, n, u = 1, plot = F) { # Get levels of the factors with unbalance u
+  
+  # xa <- c(u, rep(1, a-1))
+  # pa <- round(xa/sum(xa)*n)
+  # pa[1] = pa[1] + n - sum(pa)
+  # A <- rep(1:a, times = pa)
+  A <- gl(a, n/a, length = n)
+  
+  B <- c()
+  xb <- c(u, rep(1, b-1))
+  for (i in table(A)){
+    pb <- round(xb/sum(xb)*i)
+    pb[1] = pb[1] + i - sum(pb)
+    B <- c(B, rep(1:b, times = pb))
+  }
+  if(plot){
+    pheatmap::pheatmap(cbind(A,B), cluster_cols = F, cluster_rows = F)
+  }
+  return(list(factor(A),factor(B)))
+}
+
+sim.props <- function(q, n, p0, stdev){
+  p <- p0
+  Y <- matrix(NA, nrow = n, ncol = q)
+  for (i in 1:n){
+    for (j in 1:q){
+      e <- rep(0, q); e[j] <- 1
+      d <- rnorm(1, mean = 0, sd = stdev)
+      if(d > dM(p, e)){ d <- dM(p, e) }
+      p <- geodesic(p, e, d)
+    }
+    Y[i, ] <- p
+    p <- p0
+  }
+  return(Y)
+}
+
+Sim.props <- function(B, q, n, loc, delta, hk, stdev){
+  
+  x <- c(loc, rep(1, q-1))
+  y0 <- x/sum(x)
+  
+  Y <- sim.props(q, n, y0, stdev)
+  
+  if (hk == 1){
+    if (delta != 0){
+      e <- c(1, rep(0, q-1))
+      y <- step2distance(y0, e, delta)$r
+      Y[B == 1, ] <- sim.props(q, sum(B==1), y, stdev)
+    }
+  } else {
+    if (delta != 0){
+      e <- c(1, rep(0, q-1))
+      y <- step2distance(y0, e, delta)$r
+      Y[B == 1, ] <- sim.props(q, sum(B==1), y, stdev*hk)
+    } else {
+      Y[B == 1, ] <- sim.props(q, sum(B==1), y0 , stdev*hk)
+    }
+  }
+  return(Y)
+}
+
+sim.mvnorm <- function(q, n, mu, v, c){
+
+  corr <- matrix(c, nrow = q, ncol = q)
+  diag(corr) <- rep(1, q)
+  sigma <- corr * tcrossprod(sqrt(v))
+  
+  Y <- mvrnorm(n, mu = mu, Sigma = sigma)
+  
+  return(Y)
+}
+
+Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
+
+  if(Var == "equal"){
+    vars <- rep(1, q)
+  } else if (Var == "unequal"){
+    vars <- (q:1)/sum(q:1)
+  } else {
+    stop(sprintf("Unknown option: Var = '%s'.", Var))
+  }
+  
+  Y <- sim.mvnorm(q, n, mu, vars, Cor)
+  
+  if (hk == 1){
+    if (delta != 0){
+      mu[1] <- mu[1] + delta
+      Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars, Cor)
+    }
+  } else {
+    if (delta != 0){
+      mu[1] <- mu[1] + delta
+      Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
+    } else {
+      Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
+    }
+  } 
+  return(Y)
+}
