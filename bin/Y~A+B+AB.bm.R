@@ -135,7 +135,7 @@ if (chunk != 0) {
     # Asymptotic test statistic (Our proposal)
     e <- eigen(cov(R)*(n-1)/df.e, symmetric = T, only.values = T)$values
     
-    tstats <- rbind(tstats, c(Fs, unlist(SS), e, eG))
+    tstats <- rbind(tstats, c(Fs, unlist(SS)))
     
   }
   
@@ -178,7 +178,7 @@ if (chunk != 0) {
   
   d <- as.dist(interDist(Y))
   
-  # Permutation (raw data)
+  # Adonis permutations (raw data)
   ado <- adonis(d ~ A + B + A:B, permutations = S, parallel = cores)
 
   save(ado, file = sprintf("%s.RData",output))
