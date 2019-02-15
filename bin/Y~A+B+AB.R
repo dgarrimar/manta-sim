@@ -19,10 +19,10 @@ option_list = list(
               help="Unbalance degree (B level 1) [default %default]", metavar="numeric"),
   make_option(c("-n","--no_samples"), type="numeric", default=100,
               help="Total number of samples [default %default]", metavar="numeric"),
-  make_option(c("-s","--simulations"), type="numeric", default=1e6,
+  make_option(c("-S","--simulations"), type="numeric", default=1e6,
               help="Number of simulations [default %default]", metavar="numeric"),
   make_option(c("-m", "--model"), type="character", default="mvnorm",
-              help="H0-generator model: 'props' or 'mvnorm' [default %default]",
+              help="H0-generator model: 'mvnorm' or 'simplex' [default %default]",
               metavar="character"),
   make_option(c("-d","--delta"), type="numeric", default=0,
               help="H1 generation parameter [default %default]", metavar="numeric"),
@@ -30,10 +30,10 @@ option_list = list(
               help="Correlation of the Y variables [default %default]", metavar="numeric"),
   make_option(c("-v","--variance_y"), type="character", default="equal",
               help="Variance of the Y variables: 'equal' or 'unequal' [default %default]", metavar="character"),
-  make_option(c("-d","--stdev"), type="numeric", default=0.1,
-              help="stdev for the 'props' generator model [default %default]", metavar="numeric"),
+  make_option(c("-s","--stdev"), type="numeric", default=0.1,
+              help="stdev for the 'simplex' generator model [default %default]", metavar="numeric"),
   make_option(c("-l","--location"), type="numeric", default=1,
-              help="location in the simplex for the 'props' generator model [default %default]", 
+              help="location of the 'simplex' generator model [default %default]", 
               metavar="numeric"),
   make_option(c("-H","--heterosk"), type="numeric", default= 1,
               help="Heteoskedasticity degree (B level 1) [default %default]", metavar="numeric"),
@@ -89,9 +89,9 @@ for (i in 1:S){
   
   set.seed(i)
   
-  if (modelSim == "props") {
+  if (modelSim == "simplex") {
     
-    Y <- Sim.props(B, q, n, loc, delta, hk, stdev)
+    Y <- Sim.simplex(B, q, n, loc, delta, hk, stdev)
    
   } else if (modelSim == "mvnorm") {
     

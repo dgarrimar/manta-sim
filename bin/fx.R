@@ -100,7 +100,7 @@ label <- function(a, b, n, u = 1, plot = F) { # Get levels of the factors with u
   return(list(factor(A),factor(B)))
 }
 
-sim.props <- function(q, n, p0, stdev){
+sim.simplex <- function(q, n, p0, stdev){
   p <- p0
   Y <- matrix(NA, nrow = n, ncol = q)
   for (i in 1:n){
@@ -116,26 +116,26 @@ sim.props <- function(q, n, p0, stdev){
   return(Y)
 }
 
-Sim.props <- function(B, q, n, loc, delta, hk, stdev){
+Sim.simplex <- function(B, q, n, loc, delta, hk, stdev){
   
   x <- c(loc, rep(1, q-1))
   y0 <- x/sum(x)
   
-  Y <- sim.props(q, n, y0, stdev)
+  Y <- sim.simplex(q, n, y0, stdev)
   
   if (hk == 1){
     if (delta != 0){
       e <- c(1, rep(0, q-1))
       y <- step2distance(y0, e, delta)$r
-      Y[B == 1, ] <- sim.props(q, sum(B==1), y, stdev)
+      Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev)
     }
   } else {
     if (delta != 0){
       e <- c(1, rep(0, q-1))
       y <- step2distance(y0, e, delta)$r
-      Y[B == 1, ] <- sim.props(q, sum(B==1), y, stdev*hk)
+      Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk)
     } else {
-      Y[B == 1, ] <- sim.props(q, sum(B==1), y0 , stdev*hk)
+      Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk)
     }
   }
   return(Y)
