@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 
 ## Evaluation of asymptotic Anderson's test in complex models
-## Model: Y ~ A + B + AB, balanced
+## Model: Y ~ A + B + AB
 
 ##  0. Parse arguments
 
@@ -131,6 +131,14 @@ for (i in 1:S){
   pv.mt <- rbind(pv.mt, c(pv.acc[1,],summary(manova(fit))$stats[,6][1:3])) # MANOVA added for comparison
 }
 
-write.table(t(colMeans(pv.mt < 0.05)), file = output, sep = "\t", col.names = F, row.names = F, quote = F)
+if(modelSim == "mvnorm"){
+  params <- c(a, b, n, u, q, delta, hk, Var, Cor, transf)
+} else if(modelSim != "simplex"){
+  params <- c(a, b, n, u, q, delta, hk, loc, stdev, transf)
+}
+
+result2write <- colMeans(pv.mt < 0.05)
+
+write.table(t(c(params, result2write)), file = output, sep = "\t", col.names = F, row.names = F, quote = F)
 
 
