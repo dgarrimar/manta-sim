@@ -133,7 +133,7 @@ for (i in 1:S){
 
 if(modelSim == "mvnorm"){
   params <- c(a, b, n, u, q, delta, hk, Var, Cor, transf)
-} else if(modelSim != "simplex"){
+} else if(modelSim == "simplex"){
   params <- c(a, b, n, u, q, delta, hk, loc, stdev, transf)
 }
 
