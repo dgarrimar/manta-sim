@@ -107,7 +107,7 @@ sim.simplex <- function(q, n, p0, stdev){
     for (j in 1:q){
       e <- rep(0, q); e[j] <- 1
       d <- rnorm(1, mean = 0, sd = stdev)
-      if(d > dM(p, e)){ d <- dM(p, e) }
+      # if(d > dM(p, e)){ d <- dM(p, e) }
       p <- geodesic(p, e, d)
     }
     Y[i, ] <- p
@@ -116,28 +116,28 @@ sim.simplex <- function(q, n, p0, stdev){
   return(Y)
 }
 
-Sim.simplex <- function(B, q, n, loc, delta, hk, stdev){
+Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   
   x <- c(loc, rep(1, q-1))
   y0 <- x/sum(x)
   
   Y <- sim.simplex(q, n, y0, stdev)
   
-  if (hk == 1){
-    if (delta != 0){
-      e <- c(1, rep(0, q-1))
-      y <- step2distance(y0, e, delta)$r
-      Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev)
-    }
-  } else {
-    if (delta != 0){
-      e <- c(1, rep(0, q-1))
-      y <- step2distance(y0, e, delta)$r
-      Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk)
-    } else {
-      Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk)
-    }
+  if(check){
+    e <- c(1, rep(0, q-1))
+    y <- step2distance(y0, e, delta)$r
+    Y <- sim.simplex(q, 1e4, y, stdev*hk)
+    return(data.frame(exp = y, obs = colMeans(Y)))
   }
+  
+  if (delta != 0){
+    e <- c(1, rep(0, q-1))
+    y <- step2distance(y0, e, delta)$r
+    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk)
+  } else {
+    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk)
+  }
+  
   return(Y)
 }
 
@@ -164,18 +164,12 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
   
   Y <- sim.mvnorm(q, n, mu, vars, Cor)
   
-  if (hk == 1){
-    if (delta != 0){
-      mu[1] <- mu[1] + delta
-      Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars, Cor)
-    }
+  if (delta != 0){
+    mu[1] <- mu[1] + delta
+    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
   } else {
-    if (delta != 0){
-      mu[1] <- mu[1] + delta
-      Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
-    } else {
-      Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
-    }
-  } 
+    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
+  }
+  
   return(Y)
 }

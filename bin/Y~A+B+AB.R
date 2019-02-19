@@ -90,6 +90,15 @@ for (i in 1:S){
   set.seed(i)
   
   if (modelSim == "simplex") {
+
+    if( i == 1){ # Sanity check
+      tol <- 0.01
+      check <- Sim.simplex(B, q, n, loc, delta, hk, stdev, check = T)
+      w <- which.max(check$exp)
+      if( abs(check[w, "obs"] - check[w, "exp"]) > tol ) {
+        stop("Deviation from expected centroid greater than tolerance.")
+      }
+    }
     
     Y <- Sim.simplex(B, q, n, loc, delta, hk, stdev)
    
