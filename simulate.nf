@@ -23,7 +23,7 @@ params.t = 'none'
 params.model = 'Y~A+B+AB.R'
 params.gen = 'mvnorm'
 params.sim = 10000
-params.d = 0
+params.delta = 0
 params.hk = 1
 
 // Generation: multivariate normal
@@ -92,7 +92,7 @@ log.info "Transformation of Y          : ${params.t}"
 log.info "Model definition             : ${params.model}"
 log.info "Data generation              : ${params.gen}"
 log.info "Number of simulations        : ${params.sim}"
-log.info "Change in H1 (delta)         : ${params.d}"
+log.info "Change in H1 (delta)         : ${params.delta}"
 log.info "Heteroskedasticity           : ${params.hk}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
@@ -118,7 +118,7 @@ if(params.gen == 'mvnorm'){
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['a','b','n','u','q','d','hk','y_var','y_cor','p_loc','p_sd']){
+  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd']){
     grid[it] = params[it]
   }
 }
@@ -150,7 +150,7 @@ process simulation {
     each n from grid.n
     each u from grid.u
     each q from grid.q
-    each d from grid.d
+    each d from grid.delta
     each hk from grid.hk
     each y_var from grid.y_var
     each y_cor from grid.y_cor
