@@ -128,12 +128,14 @@ grid.keySet().each {
         grid[it] = grid[it].tokenize(',')
     } else if (grid[it] =~ /:/) {
         def (start, end, step) = grid[it].tokenize(':')
-        if(step?.trim()){ // not empty
-            grid[it] = (start.toInteger()..end.toInteger()).step(step.toInteger()).toList()
-        }else{
-            grid[it] = (start.toInteger()..end.toInteger()).toList()
+        def seq = []
+        def val = start.toFloat()
+        while(val.round(4) <= end.toFloat().round(4)){
+            seq += val.round(4)
+            val += step.toFloat().round(4)
         }
-    } 
+	grid[it] = seq
+    }
 }
 
 /*
