@@ -20,6 +20,7 @@ params.n = 100
 params.u = 1
 params.q = 3
 params.t = 'none'
+params.which = 'B'
 params.model = 'Y~A+B+AB.R'
 params.gen = 'mvnorm'
 params.sim = 10000
@@ -55,6 +56,7 @@ if (params.help) {
   log.info ' --u UNBALANCE               unbalance, 1 is balanced. (default: 1)'
   log.info ' --q RESPONSES               number of response variables (default: 3)'
   log.info ' --t TRANSFORM               transform response variables: none, sqrt or log (default: none)'
+  log.info ' --which WHICH               which factor changes in H1 (default: B)'
   log.info ' --model MODEL               R script with model definition (default: Y~A+B+AB.R)'
   log.info ' --gen GENERATION            data generation: mvnorm or simplex (default: mvnorm)'
   log.info ' --sim SIMULATIONS           number of simulations (default: 10000)'
@@ -89,6 +91,7 @@ log.info "Total sample size            : ${params.n}"
 log.info "Unbalance degree             : ${params.u}"
 log.info "Number of Y variables        : ${params.q}"
 log.info "Transformation of Y          : ${params.t}"
+log.info "Which factor changes in H1   : ${params.which}"
 log.info "Model definition             : ${params.model}"
 log.info "Data generation              : ${params.gen}"
 log.info "Number of simulations        : ${params.sim}"
@@ -163,7 +166,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -l $p_loc -s $p_sd -S ${params.sim} -m ${params.gen} -t ${params.t} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -l $p_loc -s $p_sd -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
     """
 }
 

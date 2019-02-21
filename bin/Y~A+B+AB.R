@@ -28,6 +28,8 @@ option_list = list(
               help="H1 generation parameter [default %default]", metavar="numeric"),
   make_option(c("-c","--correlation_y"), type="numeric", default=0,
               help="Correlation of the Y variables [default %default]", metavar="numeric"),
+  make_option(c("-w","--which"), type="character", default = "B",
+              help="Which factor changes: A, B or AB", metavar = "character"),
   make_option(c("-v","--variance_y"), type="character", default="equal",
               help="Variance of the Y variables: 'equal' or 'unequal' [default %default]", metavar="character"),
   make_option(c("-s","--stdev"), type="numeric", default=0.1,
@@ -65,6 +67,7 @@ delta <- opt$delta
 transf <- opt$transf
 S <- opt$simulations
 modelSim <- opt$model
+w <- opt$which
 output <- opt$output
 
 ## 1. Load packages and functions
@@ -73,6 +76,7 @@ library(CompQuadForm)
 library(car)
 library(MCMCpack)
 library(MASS)
+library(plyr)
 
 source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simul/nf/bin/fx.R")
 
@@ -81,6 +85,18 @@ source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simul/nf/bin/fx.R")
 labs <- label(a, b, n, u)
 A <- labs[[1]]
 B <- labs[[2]]
+
+if(w == "A"){
+  ch <- A
+} else if (w == "B") {
+  ch <- B
+} else if (w == "AB") {
+  levs <- levels(A:B)
+  ch <- mapvalues(A:B, from = levs, to = 1:length(levs)) 
+  # Trick so that first level is 1 and functions below are valid
+} else {
+  stop(sprintf("Unknown factor: '%s'.", w))
+}
 
 ## 3. Simulate
 
@@ -93,18 +109,18 @@ for (i in 1:S){
 
     if( i == 1){ # Sanity check
       tol <- 0.01
-      check <- Sim.simplex(B, q, n, loc, delta, hk, stdev, check = T)
+      check <- Sim.simplex(ch, q, n, loc, delta, hk, stdev, check = T)
       w <- which.max(check$exp)
       if( abs(check[w, "obs"] - check[w, "exp"]) > tol ) {
         stop("Deviation from expected centroid greater than tolerance.")
       }
     }
     
-    Y <- Sim.simplex(B, q, n, loc, delta, hk, stdev)
+    Y <- Sim.simplex(ch, q, n, loc, delta, hk, stdev)
    
   } else if (modelSim == "mvnorm") {
     
-    Y <- Sim.mvnorm(B, q, n, mu = rep(0, q), delta, hk, Var, Cor)
+    Y <- Sim.mvnorm(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
     
   } else {
     stop(sprintf("Unknown option: modelSim = '%s'.", modelSim))
