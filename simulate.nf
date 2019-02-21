@@ -56,7 +56,7 @@ if (params.help) {
   log.info ' --u UNBALANCE               unbalance, 1 is balanced. (default: 1)'
   log.info ' --q RESPONSES               number of response variables (default: 3)'
   log.info ' --t TRANSFORM               transform response variables: none, sqrt or log (default: none)'
-  log.info ' --which WHICH               which factor changes in H1 (default: B)'
+  log.info ' --which WHICH               which factor changes in H1: A, B or AB (default: B)'
   log.info ' --model MODEL               R script with model definition (default: Y~A+B+AB.R)'
   log.info ' --gen GENERATION            data generation: mvnorm or simplex (default: mvnorm)'
   log.info ' --sim SIMULATIONS           number of simulations (default: 10000)'
