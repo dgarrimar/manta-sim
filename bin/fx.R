@@ -79,16 +79,26 @@ pv.f <- function(f, lambda, df.i, df.e, acc = 1e-14){
   return(c(pv, acc))
 }
 
-label <- function(a, b, n, u = 1, plot = F) { # Get levels of the factors with unbalance u
+label <- function(a, b, n, u = 1, w = "B", plot = F) { # Get levels of the factors with unbalance u
   
-  # xa <- c(u, rep(1, a-1))
-  # pa <- round(xa/sum(xa)*n)
-  # pa[1] = pa[1] + n - sum(pa)
-  # A <- rep(1:a, times = pa)
-  A <- gl(a, n/a, length = n)
+  if (w == "A"){
+    ua <- u
+    ub <- 1
+  } else if (w == "B") {
+    ua <- 1
+    ub <- u
+  } else if (w == "AB") {
+    ua <- ub <- u
+  }
+  
+  xa <- c(ua, rep(1, a-1))
+  pa <- round(xa/sum(xa)*n)
+  pa[1] = pa[1] + n - sum(pa)
+  A <- rep(1:a, times = pa)
+  # A <- gl(a, n/a, length = n)
   
   B <- c()
-  xb <- c(u, rep(1, b-1))
+  xb <- c(ub, rep(1, b-1))
   for (i in table(A)){
     pb <- round(xb/sum(xb)*i)
     pb[1] = pb[1] + i - sum(pb)
