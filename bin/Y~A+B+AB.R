@@ -110,8 +110,8 @@ for (i in 1:S){
     if( i == 1){ # Sanity check
       tol <- 0.01
       check <- Sim.simplex(ch, q, n, loc, delta, hk, stdev, check = T)
-      w <- which.max(check$exp)
-      if( abs(check[w, "obs"] - check[w, "exp"]) > tol ) {
+      wm <- which.max(check$exp)
+      if( abs(check[wm, "obs"] - check[wm, "exp"]) > tol ) {
         stop("Deviation from expected centroid greater than tolerance.")
       }
     }
