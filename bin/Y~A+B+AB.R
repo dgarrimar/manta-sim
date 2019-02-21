@@ -82,7 +82,7 @@ source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simul/nf/bin/fx.R")
 
 ## 2. Define parameters 
 
-labs <- label(a, b, n, u)
+labs <- label(a, b, n, u, w)
 A <- labs[[1]]
 B <- labs[[2]]
 
