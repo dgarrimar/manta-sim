@@ -122,13 +122,24 @@ for (i in 1:S){
     
     Y <- Sim.mvnorm(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
     
+  } else if (modelSim == "multinom") {
+
+    N <- 100
+    Y <- Sim.multinom(ch, q, n, N, delta/N, loc)
+
   } else {
     stop(sprintf("Unknown option: modelSim = '%s'.", modelSim))
   }
   
   if (transf == "sqrt"){
     Y <- sqrt(Y)
-  } 
+  } else if (transf == "log"){
+    Y <- log(Y)
+  } else if (transf == "None"){
+    
+  } else {
+    stop(sprintf("Unknown option: transf = '%s'.", transf))
+  }
   
   # lm and residuals
   Y <- scale(Y, center = T, scale = F)
@@ -153,7 +164,9 @@ for (i in 1:S){
   # eigendecomposition and pv calculation
   e <- eigen(cov(R)*(n-1)/df.e, symmetric = T, only.values = T)$values
   pv.acc <- mapply(pv.f, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
-  pv.mt <- rbind(pv.mt, c(pv.acc[1,],summary(manova(fit))$stats[,6][1:3])) # MANOVA added for comparison
+  MANOVA <- tryCatch({summary(manova(fit))$stats[,6][1:3]}, 
+                     error = function(e){return(rep(NA, 3))}) # MANOVA added for comparison, it may fail with lin. dep. variables
+  pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
 }
 
 if(modelSim == "mvnorm"){
