@@ -117,7 +117,19 @@ sim.simplex <- function(q, n, p0, stdev){
     for (j in 1:q){
       e <- rep(0, q); e[j] <- 1
       d <- rnorm(1, mean = 0, sd = stdev)
-      # if(d > dM(p, e)){ d <- dM(p, e) }
+      if(d > 0) {
+        dm <- dM(p, e)
+        if (d > dm){
+          d <- dm
+          warning("One observation out of the simplex was corrected.")
+        } 
+      } else if (d < 0) {
+        dm2 <- dM(p, e) - pi
+        if(d < dm2){
+          d <- dm2
+          warning("One observation out of the simplex was corrected.")
+        }
+      }
       p <- geodesic(p, e, d)
     }
     Y[i, ] <- p
@@ -176,10 +188,11 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
   
   if (delta != 0){
     mu[1] <- mu[1] + delta
-    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
+    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor) # Should this be vars[1]*hk?
   } else {
     Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
   }
   
   return(Y)
 }
+
