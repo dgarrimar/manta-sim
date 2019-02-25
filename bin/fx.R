@@ -143,14 +143,15 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   x <- c(loc, rep(1, q-1))
   y0 <- x/sum(x)
   
-  Y <- sim.simplex(q, n, y0, stdev)
-  
   if(check){
     e <- c(1, rep(0, q-1))
     y <- step2distance(y0, e, delta)$r
+    if(any(is.na(y))) {stop("Mean out of the simplex.")}
     Y <- sim.simplex(q, 1e4, y, stdev*hk)
     return(data.frame(exp = y, obs = colMeans(Y)))
   }
+  
+  Y <- sim.simplex(q, n, y0, stdev)
   
   if (delta != 0){
     e <- c(1, rep(0, q-1))
