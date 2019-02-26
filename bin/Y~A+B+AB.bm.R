@@ -62,7 +62,7 @@ library(MCMCpack)
 library(MASS)
 library(vegan)
 
-source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simul/nf/bin/fx.R")
+source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
 
 ## 2. Define parameters 
 
