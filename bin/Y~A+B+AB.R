@@ -19,7 +19,7 @@ option_list = list(
               help="Unbalance degree (B level 1) [default %default]", metavar="numeric"),
   make_option(c("-n","--no_samples"), type="numeric", default=100,
               help="Total number of samples [default %default]", metavar="numeric"),
-  make_option(c("-S","--simulations"), type="numeric", default=1e6,
+  make_option(c("-S","--simulations"), type="numeric", default=1e3,
               help="Number of simulations [default %default]", metavar="numeric"),
   make_option(c("-m", "--model"), type="character", default="mvnorm",
               help="H0-generator model: 'mvnorm' or 'simplex' [default %default]",
@@ -77,8 +77,9 @@ library(car)
 library(MCMCpack)
 library(MASS)
 library(plyr)
+library(copula)
 
-source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simul/nf/bin/fx.R")
+source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
 
 ## 2. Define parameters 
 
@@ -126,6 +127,10 @@ for (i in 1:S){
 
     N <- 100
     Y <- Sim.multinom(ch, q, n, N, delta/N, loc)
+
+  } else if (modelSim == "copula") {
+
+    Y <- Sim.copula(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
 
   } else {
     stop(sprintf("Unknown option: modelSim = '%s'.", modelSim))
