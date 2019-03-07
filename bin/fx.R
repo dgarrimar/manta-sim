@@ -110,6 +110,18 @@ label <- function(a, b, n, u = 1, w = "B", plot = F) { # Get levels of the facto
   return(list(factor(A),factor(B)))
 }
 
+step2h1 <- function(p0, e, step) {
+  # e should be one vertex of the simplex
+  i <- which(e==1)
+  if(p0[i] + step > 1 || p0[i] + step < 0) {
+    stop("H1 out of the simplex.")
+  } 
+  p1 <- p0
+  p1[i] <- p0[i] + step
+  p1[-i] <- p0[-i] * (1 - step/(1-p0[i]))
+  return(p1)
+}
+
 sim.simplex <- function(q, n, p0, stdev){
   p <- p0
   Y <- matrix(NA, nrow = n, ncol = q)
@@ -117,6 +129,8 @@ sim.simplex <- function(q, n, p0, stdev){
     for (j in 1:q){
       e <- rep(0, q); e[j] <- 1
       d <- rnorm(1, mean = 0, sd = stdev)
+      # d <- (rbeta(1, shape1 = 0.5, shape2 = 0.5)-0.5)/0.5/sqrt(2)*stdev
+      # d <- (rgamma(1, shape = 1, rate = 1) - 1)*stdev
       if(d > 0) {
         dm <- dM(p, e)
         if (d > dm){
@@ -145,8 +159,7 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   
   if(check){
     e <- c(1, rep(0, q-1))
-    y <- step2distance(y0, e, delta)$r
-    if(any(is.na(y))) {stop("Mean out of the simplex.")}
+    y <- step2h1(y0, e, delta)
     Y <- sim.simplex(q, 1e4, y, stdev*hk)
     return(data.frame(exp = y, obs = colMeans(Y)))
   }
@@ -154,9 +167,23 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   Y <- sim.simplex(q, n, y0, stdev)
   
   if (delta != 0){
+    
+    # Generate e and H1 (+/- delta)
     e <- c(1, rep(0, q-1))
-    y <- step2distance(y0, e, delta)$r
-    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk)
+    y <- step2h1(y0, e, delta)
+    yprime <- step2h1(y0, e, -delta)
+    
+    if(any(grepl(":", B))){ # Then we are changing the interaction
+      levs <- levels(B)
+      b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]   # Recover b
+      B <- mapvalues(B, from = levs, to = 1:length(levs))             # Relevel
+      Y[B == (1+b), ] <- sim.simplex(q, sum(B==(1+b)), yprime, stdev)
+      Y[B == (2+b), ] <- sim.simplex(q, sum(B==(2+b)), y, stdev) 
+    } 
+    
+    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk)   
+    Y[B == 2, ] <- sim.simplex(q, sum(B==2), yprime, stdev)
+    
   } else {
     Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk)
   }
@@ -164,11 +191,15 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   return(Y)
 }
 
-sim.mvnorm <- function(q, n, mu, v, c){
+sim.mvnorm <- function(q, n, mu, v, c, tol = 1e-8){
 
   corr <- matrix(c, nrow = q, ncol = q)
   diag(corr) <- rep(1, q)
   sigma <- corr * tcrossprod(sqrt(v))
+  
+  if(any(eigen(sigma, only.values = T)$values < tol)){
+    stop("Covariance matrix should be positive definite.")
+  }
   
   Y <- mvrnorm(n, mu = mu, Sigma = sigma)
   
@@ -176,7 +207,7 @@ sim.mvnorm <- function(q, n, mu, v, c){
 }
 
 Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
-
+  
   if(Var == "equal"){
     vars <- rep(1, q)
   } else if (Var == "unequal"){
@@ -188,12 +219,20 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
   Y <- sim.mvnorm(q, n, mu, vars, Cor)
   
   if (delta != 0){
-    mu[1] <- mu[1] + delta
-    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor) # Should this be vars[1]*hk?
+    
+    if(any(grepl(":", B))){ # Then we are changing the interaction
+      levs <- levels(B)
+      b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]  # Recover b
+      B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
+      Y[B == (1+b), ] <- sim.mvnorm(q, sum(B==(1+b)), mu - c(delta, rep(0, q-1)), vars, Cor) 
+      Y[B == (2+b), ] <- sim.mvnorm(q, sum(B==(2+b)), mu + c(delta, rep(0, q-1)), vars, Cor)
+    } 
+    
+    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu + c(delta, rep(0, q-1)), vars*hk, Cor)   
+    Y[B == 2, ] <- sim.mvnorm(q, sum(B==2), mu - c(delta, rep(0, q-1)), vars, Cor)      
+    
   } else {
     Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
   }
-  
   return(Y)
 }
-

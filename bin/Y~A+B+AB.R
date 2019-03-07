@@ -92,9 +92,7 @@ if(w == "A"){
 } else if (w == "B") {
   ch <- B
 } else if (w == "AB") {
-  levs <- levels(A:B)
-  ch <- mapvalues(A:B, from = levs, to = 1:length(levs)) 
-  # Trick so that first level is 1 and functions below are valid
+  ch <- A:B
 } else {
   stop(sprintf("Unknown factor: '%s'.", w))
 }
