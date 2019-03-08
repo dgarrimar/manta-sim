@@ -37,6 +37,9 @@ option_list = list(
   make_option(c("-p","--position"), type="numeric", default=1,
               help="location of the 'simplex' generator model [default %default]", 
               metavar="numeric"),
+  make_option(c("-D","--DistDef"), type="character", default="unif|0|1",
+              help="Multivariate non-normal distribution definition [default %default]", 
+              metavar="character"),
   make_option(c("-l","--lambda"), type="numeric", default=100,
               help="lambda parameter (Poisson distribution) to generate size for 'multinom' generator model [default %default]", 
               metavar="numeric"),
@@ -63,6 +66,7 @@ n <- opt$no_samples
 u <- opt$unbalance
 Cor <- opt$correlation_y
 Var <- opt$variance_y
+dd <- opt$DistDef
 lambda <- opt$lambda
 stdev <- opt$stdev
 loc <- opt$position
@@ -81,7 +85,7 @@ library(car)
 library(MCMCpack)
 library(MASS)
 library(plyr)
-# library(copula)
+library(copula)
 
 source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
 
@@ -131,7 +135,7 @@ for (i in 1:S){
 
   } else if (modelSim == "copula") {
 
-    # Y <- Sim.copula(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
+    Y <- Sim.copula(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor, dd)
 
   } else {
     stop(sprintf("Unknown option: modelSim = '%s'.", modelSim))
@@ -177,6 +181,8 @@ for (i in 1:S){
 
 if(modelSim == "mvnorm"){
   params <- c(a, b, n, u, q, delta, hk, Var, Cor, transf)
+} else if(modelSim == "copula"){
+  params <- c(a, b, n, u, q, delta, hk, Var, Cor, dd, transf)
 } else if(modelSim == "simplex"){
   params <- c(a, b, n, u, q, delta, hk, loc, stdev, transf)
 } else if(modelSim == "multinom"){

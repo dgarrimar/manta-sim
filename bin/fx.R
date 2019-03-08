@@ -191,7 +191,7 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   return(Y)
 }
 
-sim.mvnorm <- function(q, n, mu, v, c, tol = 1e-8){
+sim.mvnorm <- function(q, n, mu, v, c, tol = 1e-10){
 
   corr <- matrix(c, nrow = q, ncol = q)
   diag(corr) <- rep(1, q)
@@ -224,12 +224,12 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
       levs <- levels(B)
       b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]  # Recover b
       B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
-      Y[B == (1+b), ] <- sim.mvnorm(q, sum(B==(1+b)), mu - c(delta, rep(0, q-1)), vars, Cor) 
-      Y[B == (2+b), ] <- sim.mvnorm(q, sum(B==(2+b)), mu + c(delta, rep(0, q-1)), vars, Cor)
+      Y[B == (1+b), ] <- sim.mvnorm(q, sum(B==(1+b)), mu - delta, vars, Cor) 
+      Y[B == (2+b), ] <- sim.mvnorm(q, sum(B==(2+b)), mu + delta, vars, Cor)
     } 
     
-    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu + c(delta, rep(0, q-1)), vars*hk, Cor)   
-    Y[B == 2, ] <- sim.mvnorm(q, sum(B==2), mu - c(delta, rep(0, q-1)), vars, Cor)      
+    Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu + delta, vars*hk, Cor)   
+    Y[B == 2, ] <- sim.mvnorm(q, sum(B==2), mu - delta, vars, Cor)      
     
   } else {
     Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
@@ -263,5 +263,85 @@ Sim.multinom <- function(B, q, n, N, delta, loc) {
     Y[B == 2, ] <- t(rmultinom(sum(B==2), N, yprime))   
     
   } 
+  return(Y)
+}
+
+CopSEM <- function(copmvdc, cormt, nw = 1e6, np = 100){
+  Xw <- rMvdc(mvdc = copmvdc, n = nw)
+  ## draw warm-up sample
+  Sw <- cov(Xw)
+  ## warm-up VC matrix
+  cormt.eigen <- eigen(cormt)
+  ## EV decomposition cormt
+  cormtroot <- cormt.eigen$vectors%*%sqrt(diag(cormt.eigen$values))%*%t(cormt.eigen$vectors)
+  ## root cormt
+  Sx.eigen <- eigen(solve(Sw))
+  ## EV decomposition S
+  Sxroot <- Sx.eigen$vectors%*%sqrt(diag(Sx.eigen$values))%*%t(Sx.eigen$vectors)
+  ## root S
+  X <- rMvdc(mvdc = copmvdc, n = np)
+  ## draw production sample
+  Y <- (X %*% (Sxroot) %*% cormtroot)  ## linear combination for
+  ## return Y
+  return(Y)
+}
+
+sim.copula <- function(q, n, v, c, distdef, tol = 1e-10){
+  
+  corr <- matrix(c, nrow = q, ncol = q)
+  diag(corr) <- rep(1, q)
+  sigma <- corr * tcrossprod(sqrt(v))
+  
+  if(any(eigen(sigma, only.values = T)$values < tol)){
+    stop("Covariance matrix should be positive definite.")
+  }
+  
+  distrib <- unlist(strsplit(distdef, "-"))[1]
+  params <- as.numeric(unlist(strsplit(distdef, "-"))[-1])
+  
+  mar <- switch(distrib[1],
+                "unif" = list(min = params[1], max = params[2]),
+                "gamma" = list(shape = params[1], scale = params[2]),
+                "beta" = list(shape1 = params[1], shape2 = params[2]),
+                "t" = list(df = params[1]),
+                "exp" = list(rate = params[1]),
+                "lnorm" = list(meanlog = params[1], sdlog = params[2]),
+                "binom" = list(size = params[1], p = params[2]))
+
+  myCop <- normalCopula(param = P2p(corr), dim = q, dispstr = "un")
+  myMvd <- mvdc(copula = myCop, margins = rep(distrib[1], q), paramMargins = rep(list(mar), q))
+  Y <- rMvdc(n, myMvd)
+  return(Y)
+}
+
+Sim.copula <- function(B, q, n, mu, delta, hk, Var, Cor, dd) {
+  
+  if(Var == "equal"){
+    vars <- rep(1, q)
+  } else if (Var == "unequal"){
+    vars <- (q:1)/sum(q:1)
+  } else {
+    stop(sprintf("Unknown option: Var = '%s'.", Var))
+  }
+  
+  Y <- sim.copula(q, n, vars, Cor, dd)
+
+  Y <- scale(Y, center = T, scale = T)
+  for (i in 1:q){Y[B != 1, i] <- Y[B != 1, i] * sqrt(vars[i]) + mu[i]}
+  for (i in 1:q){Y[B == 1,i] <- Y[B == 1,i] * sqrt(vars[i]*hk) + mu[i]}
+  
+  if (delta != 0){
+    if(any(grepl(":", B))){ # Then we are changing the interaction
+      levs <- levels(B)
+      b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]  # Recover b
+      B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
+      Y[B == (1+b), ] <-  Y[B == (1+b), ] - delta
+      Y[B == (2+b), ] <- Y[B == (2+b), ] + delta
+    } 
+    
+    Y[B == 1, ] <- Y[B == 1, ] + delta  
+    Y[B == 2, ] <- Y[B == 2, ] - delta  
+  } 
+  
   return(Y)
 }

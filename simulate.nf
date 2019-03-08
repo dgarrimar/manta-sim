@@ -31,6 +31,9 @@ params.hk = 1
 params.y_var = 'equal'
 params.y_cor = 0
 
+// Generation: copula
+params.c_dist = 'unif-0-1'
+
 // Generation: simplex (proportions)
 params.p_loc = 1
 params.p_sd = 0.1
@@ -60,7 +63,7 @@ if (params.help) {
   log.info ' --t TRANSFORM               transform response variables: none, sqrt or log (default: none)'
   log.info ' --which WHICH               which factor changes in H1: A, B or AB (default: B)'
   log.info ' --model MODEL               R script with model definition (default: Y~A+B+AB.R)'
-  log.info ' --gen GENERATION            data generation: mvnorm or simplex (default: mvnorm)'
+  log.info ' --gen GENERATION            data generation: mvnorm, simplex, multinom or copula (default: mvnorm)'
   log.info ' --sim SIMULATIONS           number of simulations (default: 10000)'
   log.info ' --delta DELTA               change in H1 (default: 0.1)'
   log.info ' --hk HETEROSKEDASTICITY     heteroskedasticity, 1 is homoskedastic (default: 1)'
@@ -70,6 +73,11 @@ if (params.help) {
   log.info 'Additional parameters for generation = mvnorm:'
   log.info ' --y_var VARIANCE            variance of response variables: equal or unequal (default: equal)'
   log.info ' --y_cor CORRELATION         correlation of response variables (default: 0)'
+  log.info ''
+  log.info 'Additional parameters for generation = copula:'
+  log.info ' --y_var VARIANCE            variance of response variables: equal or unequal (default: equal)'
+  log.info ' --y_cor CORRELATION         correlation of response variables (default: 0)'
+  log.info ' --c_dist DISTRIBUTION       multivariate non-normal distribution definition (default: unif-0-1)'
   log.info ''
   log.info 'Additional parameters for generation = simplex:'
   log.info ' --p_loc LOCATION            location in the simplex of the generator model, 1 is centered (default: 1)'
@@ -111,6 +119,13 @@ if(params.gen == 'mvnorm'){
   log.info "Variance of Y variables      : ${params.y_var}"
   log.info "Correlation of Y variables   : ${params.y_cor}"
   log.info ''
+} else if (params.gen == 'copula'){
+  log.info 'Additional parameters'
+  log.info '---------------------'
+  log.info "Variance of Y variables	 : ${params.y_var}"
+  log.info "Correlation of Y variables   : ${params.y_cor}"
+  log.info "Distribution definition      : ${params.c_dist}"
+  log.info ''
 } else if (params.gen == 'simplex'){
   log.info 'Additional parameters'
   log.info '---------------------'
@@ -131,7 +146,7 @@ if(params.gen == 'mvnorm'){
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','lambda']){
+  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','c_dist','lambda']){
     grid[it] = params[it]
   }
 }
@@ -170,6 +185,7 @@ process simulation {
     each p_loc from grid.p_loc
     each p_sd from grid.p_sd      
     each lambda from grid.lambda
+    each c_dist from grid.c_dist
 
     output:
     
@@ -177,7 +193,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd -l $lambda -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd -l $lambda -D $c_dist -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
     """
 }
 
@@ -198,6 +214,10 @@ process end {
    if(params.gen == "mvnorm")
      """
      sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\ty_var\ty_cor\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
+     """
+   else if (params.gen == "copula")
+     """
+     sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\ty_var\ty_cor\tc_dist\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
      """
    else if (params.gen == "simplex")
      """
