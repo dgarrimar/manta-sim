@@ -37,7 +37,7 @@ option_list = list(
   make_option(c("-p","--position"), type="numeric", default=1,
               help="location of the 'simplex' generator model [default %default]", 
               metavar="numeric"),
-  make_option(c("-D","--DistDef"), type="character", default="unif|0|1",
+  make_option(c("-D","--DistDef"), type="character", default="unif-0-1",
               help="Multivariate non-normal distribution definition [default %default]", 
               metavar="character"),
   make_option(c("-l","--lambda"), type="numeric", default=100,
