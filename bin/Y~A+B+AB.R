@@ -40,7 +40,7 @@ option_list = list(
   make_option(c("-D","--DistDef"), type="character", default="unif-0-1",
               help="Multivariate non-normal distribution definition [default %default]", 
               metavar="character"),
-  make_option(c("-l","--lambda"), type="numeric", default=100,
+  make_option(c("-l","--lambda"), type="numeric", default=1000,
               help="lambda parameter (Poisson distribution) to generate size for 'multinom' generator model [default %default]", 
               metavar="numeric"),
   make_option(c("-H","--heterosk"), type="numeric", default= 1,
@@ -144,7 +144,7 @@ for (i in 1:S){
   if (transf == "sqrt"){
     Y <- sqrt(Y)
   } else if (transf == "log"){
-    Y <- log(Y)
+    Y <- log(Y+1)
   } else if (transf == "none"){
     
   } else {

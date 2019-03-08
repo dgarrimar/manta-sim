@@ -39,7 +39,7 @@ params.p_loc = 1
 params.p_sd = 0.1
 
 // Generation: multinomial
-params.lambda = 100
+params.lambda = 1000
 
 /*
  *  Print usage and help
@@ -84,7 +84,7 @@ if (params.help) {
   log.info ' --p_sd STDEV                standard deviation of the generator model (default: 0.1)'
   log.info ''
   log.info 'Additional parameters for generation = multinom:'
-  log.info ' --lambda LAMBDA             lambda parameter (Poisson distribution) to generate multinomial distribution\'s size parameter (default: 100)'
+  log.info ' --lambda LAMBDA             lambda parameter (Poisson distribution) to generate multinomial distribution\'s size parameter (default: 1000)'
   log.info ''
   exit(1)
 }
