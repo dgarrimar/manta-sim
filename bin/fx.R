@@ -236,3 +236,32 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
   }
   return(Y)
 }
+
+Sim.multinom <- function(B, q, n, N, delta, loc) {
+  
+  x <- c(loc, rep(1, q-1))
+  y0 <- x/sum(x)
+  
+  Y <- t(rmultinom(n, N, y0)) 
+  
+  if (delta != 0){
+  
+    # Generate e and H1 (+/- delta)
+    e <- c(1, rep(0, q-1))
+    y <- step2h1(y0, e, delta)
+    yprime <- step2h1(y0, e, -delta)
+    
+    if(any(grepl(":", B))){ # Then we are changing the interaction
+      levs <- levels(B)
+      b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]   # Recover b
+      B <- mapvalues(B, from = levs, to = 1:length(levs))             # Relevel
+      Y[B == (1+b), ] <- t(rmultinom(sum(B==(1+b)), N, yprime)) 
+      Y[B == (2+b), ] <- t(rmultinom(sum(B==(2+b)), N, y)) 
+    } 
+    
+    Y[B == 1, ] <- t(rmultinom(sum(B==1), N, y))   
+    Y[B == 2, ] <- t(rmultinom(sum(B==2), N, yprime))   
+    
+  } 
+  return(Y)
+}

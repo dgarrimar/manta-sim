@@ -22,7 +22,7 @@ option_list = list(
   make_option(c("-S","--simulations"), type="numeric", default=1e3,
               help="Number of simulations [default %default]", metavar="numeric"),
   make_option(c("-m", "--model"), type="character", default="mvnorm",
-              help="H0-generator model: 'mvnorm' or 'simplex' [default %default]",
+              help="H0/H1 generator model: 'mvnorm', 'simplex' or 'multinom' [default %default]",
               metavar="character"),
   make_option(c("-d","--delta"), type="numeric", default=0,
               help="H1 generation parameter [default %default]", metavar="numeric"),
@@ -34,12 +34,15 @@ option_list = list(
               help="Variance of the Y variables: 'equal' or 'unequal' [default %default]", metavar="character"),
   make_option(c("-s","--stdev"), type="numeric", default=0.1,
               help="stdev for the 'simplex' generator model [default %default]", metavar="numeric"),
-  make_option(c("-l","--location"), type="numeric", default=1,
+  make_option(c("-p","--position"), type="numeric", default=1,
               help="location of the 'simplex' generator model [default %default]", 
+              metavar="numeric"),
+  make_option(c("-l","--lambda"), type="numeric", default=100,
+              help="lambda parameter (Poisson distribution) to generate size for 'multinom' generator model [default %default]", 
               metavar="numeric"),
   make_option(c("-H","--heterosk"), type="numeric", default= 1,
               help="Heteoskedasticity degree (B level 1) [default %default]", metavar="numeric"),
-  make_option(c("-t","--transf"), type="character", default="None",
+  make_option(c("-t","--transf"), type="character", default="none",
               help="Data transformation: sqrt or None [default %default]", metavar="character"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output file name", metavar="character")
@@ -60,8 +63,9 @@ n <- opt$no_samples
 u <- opt$unbalance
 Cor <- opt$correlation_y
 Var <- opt$variance_y
+lambda <- opt$lambda
 stdev <- opt$stdev
-loc <- opt$location
+loc <- opt$position
 hk <- opt$heterosk
 delta <- opt$delta
 transf <- opt$transf
@@ -77,7 +81,7 @@ library(car)
 library(MCMCpack)
 library(MASS)
 library(plyr)
-library(copula)
+# library(copula)
 
 source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
 
@@ -98,7 +102,6 @@ if(w == "A"){
 }
 
 ## 3. Simulate
-
 pv.mt <- c()
 for (i in 1:S){
   
@@ -122,13 +125,13 @@ for (i in 1:S){
     Y <- Sim.mvnorm(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
     
   } else if (modelSim == "multinom") {
-
-    N <- 100
-    Y <- Sim.multinom(ch, q, n, N, delta/N, loc)
+   
+    N <- rpois(1, lambda)
+    Y <- Sim.multinom(ch, q, n, N, delta, loc)
 
   } else if (modelSim == "copula") {
 
-    Y <- Sim.copula(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
+    # Y <- Sim.copula(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
 
   } else {
     stop(sprintf("Unknown option: modelSim = '%s'.", modelSim))
@@ -138,7 +141,7 @@ for (i in 1:S){
     Y <- sqrt(Y)
   } else if (transf == "log"){
     Y <- log(Y)
-  } else if (transf == "None"){
+  } else if (transf == "none"){
     
   } else {
     stop(sprintf("Unknown option: transf = '%s'.", transf))
@@ -176,6 +179,8 @@ if(modelSim == "mvnorm"){
   params <- c(a, b, n, u, q, delta, hk, Var, Cor, transf)
 } else if(modelSim == "simplex"){
   params <- c(a, b, n, u, q, delta, hk, loc, stdev, transf)
+} else if(modelSim == "multinom"){
+  params <- c(a, b, n, u, q, delta, hk, loc, lambda, transf)
 }
 
 result2write <- colMeans(pv.mt < 0.05)
