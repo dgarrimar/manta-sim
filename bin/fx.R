@@ -185,6 +185,13 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
     Y[B == 2, ] <- sim.simplex(q, sum(B==2), yprime, stdev)
     
   } else {
+    
+    if(any(grepl(":", B))){ # Then we are changing the interaction
+      levs <- levels(B)
+      b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]  # Recover b
+      B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
+    } 
+    
     Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk)
   }
   
@@ -232,6 +239,13 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
     Y[B == 2, ] <- sim.mvnorm(q, sum(B==2), mu - delta, vars, Cor)      
     
   } else {
+    
+    if(any(grepl(":", B))){ # Then we are changing the interaction
+      levs <- levels(B)
+      b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]  # Recover b
+      B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
+    } 
+    
     Y[B == 1, ] <- sim.mvnorm(q, sum(B==1), mu, vars*hk, Cor)
   }
   return(Y)
@@ -263,26 +277,6 @@ Sim.multinom <- function(B, q, n, N, delta, loc) {
     Y[B == 2, ] <- t(rmultinom(sum(B==2), N, yprime))   
     
   } 
-  return(Y)
-}
-
-CopSEM <- function(copmvdc, cormt, nw = 1e6, np = 100){
-  Xw <- rMvdc(mvdc = copmvdc, n = nw)
-  ## draw warm-up sample
-  Sw <- cov(Xw)
-  ## warm-up VC matrix
-  cormt.eigen <- eigen(cormt)
-  ## EV decomposition cormt
-  cormtroot <- cormt.eigen$vectors%*%sqrt(diag(cormt.eigen$values))%*%t(cormt.eigen$vectors)
-  ## root cormt
-  Sx.eigen <- eigen(solve(Sw))
-  ## EV decomposition S
-  Sxroot <- Sx.eigen$vectors%*%sqrt(diag(Sx.eigen$values))%*%t(Sx.eigen$vectors)
-  ## root S
-  X <- rMvdc(mvdc = copmvdc, n = np)
-  ## draw production sample
-  Y <- (X %*% (Sxroot) %*% cormtroot)  ## linear combination for
-  ## return Y
   return(Y)
 }
 
@@ -328,7 +322,7 @@ Sim.copula <- function(B, q, n, mu, delta, hk, Var, Cor, dd) {
 
   Y <- scale(Y, center = T, scale = T)
   for (i in 1:q){Y[B != 1, i] <- Y[B != 1, i] * sqrt(vars[i]) + mu[i]}
-  for (i in 1:q){Y[B == 1,i] <- Y[B == 1,i] * sqrt(vars[i]*hk) + mu[i]}
+  for (i in 1:q){Y[B == 1, i] <- Y[B == 1, i] * sqrt(vars[i]*hk) + mu[i]}
   
   if (delta != 0){
     if(any(grepl(":", B))){ # Then we are changing the interaction
