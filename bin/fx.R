@@ -79,7 +79,9 @@ pv.f <- function(f, lambda, df.i, df.e, acc = 1e-14){
   return(c(pv, acc))
 }
 
-label <- function(a, b, n, u = 1, w = "B", plot = F) { # Get levels of the factors with unbalance u
+label <- function(a, b, n, u = 1, w = "B", plot = F, seed = 123) { # Get levels of the factors with unbalance u
+  
+  set.seed(seed)
   
   if (w == "A"){
     ua <- u
@@ -93,7 +95,13 @@ label <- function(a, b, n, u = 1, w = "B", plot = F) { # Get levels of the facto
   
   xa <- c(ua, rep(1, a-1))
   pa <- round(xa/sum(xa)*n)
-  pa[1] = pa[1] + n - sum(pa)
+  r <- n - sum(pa)
+  sel <- sample(1:length(pa), size = abs(r))
+  if(r > 0){
+    pa[sel] <- pa[sel] + 1
+  } else if (r < 0) {
+    pa[sel] <- pa[sel] - 1
+  }
   A <- rep(1:a, times = pa)
   # A <- gl(a, n/a, length = n)
   
@@ -101,7 +109,13 @@ label <- function(a, b, n, u = 1, w = "B", plot = F) { # Get levels of the facto
   xb <- c(ub, rep(1, b-1))
   for (i in table(A)){
     pb <- round(xb/sum(xb)*i)
-    pb[1] = pb[1] + i - sum(pb)
+    r <- i - sum(pb)
+    sel <- sample(1:length(pb), size = abs(r))
+    if(r > 0){
+      pb[sel] <- pb[sel] + 1
+    } else if (r < 0) {
+      pb[sel] <- pb[sel] - 1
+    } 
     B <- c(B, rep(1:b, times = pb))
   }
   if(plot){
