@@ -143,7 +143,8 @@ sim.simplex <- function(q, n, p0, stdev){
     for (j in 1:q){
       e <- rep(0, q); e[j] <- 1
       d <- rnorm(1, mean = 0, sd = stdev)
-      # d <- (rbeta(1, shape1 = 0.5, shape2 = 0.5)-0.5)/0.5/sqrt(2)*stdev
+      # d <- rnorm(1, mean = 0, sd = stdev)
+      # d <- (rbeta(1, shape1 = 0.5, shape2 = 0.5)-0.5)/(0.5/sqrt(2))*stdev
       # d <- (rgamma(1, shape = 1, rate = 1) - 1)*stdev
       if(d > 0) {
         dm <- dM(p, e)
