@@ -232,6 +232,31 @@ sim.mvnorm <- function(q, n, mu, v, c, tol = 1e-10){
   return(Y)
 }
 
+sim.mvnorm.C <- function(q, n, mu, v, c, r, C_mean, C_var, tol = 1e-10){
+  
+  corr <- matrix(c, nrow = q, ncol = q)
+  diag(corr) <- rep(1, q)
+  
+  mt <-c(1, r, rep(0, q-1))
+  for (i in 1:ncol(corr)){
+    if(i == 1){
+      mt <- c(mt, r, corr[i,])
+    } else {
+      mt <- c(mt, 0, corr[i,])
+    }
+  }
+  corr <- matrix(mt, ncol = q+1)
+  sigma <- corr * tcrossprod(sqrt(c(C_var, v)))
+  
+  if(any(eigen(sigma, only.values = T)$values < tol)){
+    stop("Covariance matrix should be positive definite.")
+  }
+  
+  Yext <- mvrnorm(n, mu = c(C_mean, mu), Sigma = sigma)
+  
+  return(Yext) 
+}
+
 Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
   
   if(Var == "equal"){
@@ -269,6 +294,33 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, Var, Cor){
   }
   return(Y)
 }
+
+Sim.mvnorm.C <- function(B, q, n, mu, r, delta, hk, Var, Cor, C_mean, C_var){
+  
+  if(Var == "equal"){
+    vars <- rep(1, q)
+  } else if (Var == "unequal"){
+    vars <- (q:1)/sum(q:1)
+  } else {
+    stop(sprintf("Unknown option: Var = '%s'.", Var))
+  }
+  
+  Yext <- sim.mvnorm.C(q, n, mu, vars, Cor, r, C_mean, C_var)
+  
+  Y <- scale(Yext[,-1], center = T, scale = T)
+  for (i in 1:q){Y[B != 1, i] <- Y[B != 1, i] * sqrt(vars[i]) + mu[i]}
+  for (i in 1:q){Y[B == 1, i] <- Y[B == 1, i] * sqrt(vars[i]*hk) + mu[i]}
+  
+  if (delta != 0){
+    Y[B == 1, ] <- Y[B == 1, ] + delta  
+    Y[B == 2, ] <- Y[B == 2, ] - delta  
+  } 
+  
+  Yext <- cbind(Yext[,1], Y)
+  
+  return(Yext)
+}
+
 
 Sim.multinom <- function(B, q, n, N, delta, loc) {
   
@@ -327,6 +379,46 @@ sim.copula <- function(q, n, v, c, distdef, tol = 1e-10){
   return(Y)
 }
 
+sim.copula.C <- function(q, n, mu, v, c, distdef, r, C_mean, C_var, tol = 1e-10){
+  
+  corr <- matrix(c, nrow = q, ncol = q)
+  diag(corr) <- rep(1, q)
+  
+  mt <-c(1, r, rep(0, q-1))
+  for (i in 1:ncol(corr)){
+    if(i == 1){
+      mt <- c(mt, r, corr[i,])
+    } else {
+      mt <- c(mt, 0, corr[i,])
+    }
+  }
+  corr <- matrix(mt, ncol = q+1)
+  sigma <- corr * tcrossprod(sqrt(c(C_var, v)))
+  
+  if(any(eigen(sigma, only.values = T)$values < tol)){
+    stop("Covariance matrix should be positive definite.")
+  }
+  
+  distrib <- unlist(strsplit(distdef, "-"))[1]
+  params <- as.numeric(unlist(strsplit(distdef, "-"))[-1])
+  
+  mar <- switch(distrib[1],
+                "unif" = list(min = params[1], max = params[2]),
+                "gamma" = list(shape = params[1], scale = params[2]),
+                "beta" = list(shape1 = params[1], shape2 = params[2]),
+                "t" = list(df = params[1]),
+                "exp" = list(rate = params[1]),
+                "lnorm" = list(meanlog = params[1], sdlog = params[2]),
+                "binom" = list(size = params[1], p = params[2]))
+  
+  myCop <- normalCopula(param = P2p(corr), dim = q+1, dispstr = "un")
+  myMvd <- mvdc(copula = myCop, margins = rep(distrib[1], q+1), paramMargins = rep(list(mar), q+1))
+  Y <- rMvdc(n, myMvd)
+  
+  return(Y)
+}
+
+
 Sim.copula <- function(B, q, n, mu, delta, hk, Var, Cor, dd) {
   
   if(Var == "equal"){
@@ -357,4 +449,30 @@ Sim.copula <- function(B, q, n, mu, delta, hk, Var, Cor, dd) {
   } 
   
   return(Y)
+}
+
+Sim.copula.C <- function(B, q, n, mu, r, delta, hk, Var, Cor, dd, C_mean, C_var) {
+  
+  if(Var == "equal"){
+    vars <- rep(1, q)
+  } else if (Var == "unequal"){
+    vars <- (q:1)/sum(q:1)
+  } else {
+    stop(sprintf("Unknown option: Var = '%s'.", Var))
+  }
+  
+  Yext <- sim.copula.C(q, n, mu, vars, Cor, dd, r, C_mean, C_var)
+  
+  Y <- scale(Yext[,-1], center = T, scale = T)
+  for (i in 1:q){Y[B != 1, i] <- Y[B != 1, i] * sqrt(vars[i]) + mu[i]}
+  for (i in 1:q){Y[B == 1, i] <- Y[B == 1, i] * sqrt(vars[i]*hk) + mu[i]}
+  
+  if (delta != 0){
+    Y[B == 1, ] <- Y[B == 1, ] + delta  
+    Y[B == 2, ] <- Y[B == 2, ] - delta  
+  } 
+  
+  Yext <- cbind(Yext[, 1], Y)
+  
+  return(Yext)
 }
