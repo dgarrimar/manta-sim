@@ -146,20 +146,24 @@ sim.simplex <- function(q, n, p0, stdev){
       # d <- rnorm(1, mean = 0, sd = stdev)
       # d <- (rbeta(1, shape1 = 0.5, shape2 = 0.5)-0.5)/(0.5/sqrt(2))*stdev
       # d <- (rgamma(1, shape = 1, rate = 1) - 1)*stdev
+      dm <- dM(p, e)
       if(d > 0) {
-        dm <- dM(p, e)
         if (d > dm){
           d <- dm
           warning("One observation out of the simplex was corrected.")
         } 
       } else if (d < 0) {
-        dm2 <- dM(p, e) - pi
+        dm2 <- dm - pi
         if(d < dm2){
           d <- dm2
           warning("One observation out of the simplex was corrected.")
         }
       }
-      p <- geodesic(p, e, d)
+      if(dm == 0){
+        p <- e
+      } else {
+        p <- geodesic(p, e, d)
+      }
     }
     Y[i, ] <- p
     p <- p0
