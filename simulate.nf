@@ -41,6 +41,11 @@ params.p_sd = 0.1
 // Generation: multinomial
 params.lambda = 1000
 
+// Model: Y~C+A.R
+params.r = 0
+params.C_mean = 0
+params.C_var = 1
+
 /*
  *  Print usage and help
  */
@@ -86,6 +91,11 @@ if (params.help) {
   log.info 'Additional parameters for generation = multinom:'
   log.info ' --lambda LAMBDA             lambda parameter (Poisson distribution) to generate multinomial distribution\'s size parameter (default: 1000)'
   log.info ''
+  log.info 'Additional parameters for model = Y~C+A.R'
+  log.info ' --r CORRELATION             correlation between C and Y1 (default: 0)'
+  log.info ' --C_mean MEAN               mean of covariate C (default: 0)'
+  log.info ' --C_var VARIANCE            variance of covariate C (default: 1)'
+  log.info ''
   exit(1)
 }
 
@@ -118,26 +128,28 @@ if(params.gen == 'mvnorm'){
   log.info '---------------------'
   log.info "Variance of Y variables      : ${params.y_var}"
   log.info "Correlation of Y variables   : ${params.y_cor}"
-  log.info ''
 } else if (params.gen == 'copula'){
   log.info 'Additional parameters'
   log.info '---------------------'
   log.info "Variance of Y variables	 : ${params.y_var}"
   log.info "Correlation of Y variables   : ${params.y_cor}"
   log.info "Distribution definition      : ${params.c_dist}"
-  log.info ''
 } else if (params.gen == 'simplex'){
   log.info 'Additional parameters'
   log.info '---------------------'
   log.info "Location in the simplex      : ${params.p_loc}"
   log.info "Generation stdev             : ${params.p_sd}"
-  log.info ''
 } else if (params.gen == 'multinom'){
   log.info 'Additional parameters'
   log.info '---------------------'
   log.info "Lambda                       : ${params.lambda}"
-  log.info ''
 }
+if(params.model == 'Y~C+A.R'){
+  log.info "Correlation between C and Y1 : ${params.r}"
+  log.info "Mean of covariate C          : ${params.C_mean}"
+  log.info "Variance of covariate C      : ${params.C_var}"
+}
+log.info ''
 
 /*
  *  Expand parameters
@@ -146,7 +158,7 @@ if(params.gen == 'mvnorm'){
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','c_dist','lambda']){
+  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','c_dist','lambda','r','C_mean','C_var']){
     grid[it] = params[it]
   }
 }
@@ -186,6 +198,9 @@ process simulation {
     each p_sd from grid.p_sd      
     each lambda from grid.lambda
     each c_dist from grid.c_dist
+    each r from grid.r
+    each C_mean from grid.C_mean
+    each C_var from grid.C_var
 
     output:
     
@@ -193,7 +208,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd -l $lambda -D $c_dist -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
     """
 }
 
@@ -211,21 +226,38 @@ process end {
 
    script:
 
-   if(params.gen == "mvnorm")
+   if(params.gen == "mvnorm" & params.model == "Y~A+B+AB.R")
      """
      sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\ty_var\ty_cor\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
      """
-   else if (params.gen == "copula")
+   else if (params.gen == "copula" & params.model == "Y~A+B+AB.R")
      """
      sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\ty_var\ty_cor\tc_dist\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
      """
-   else if (params.gen == "simplex")
+   else if (params.gen == "simplex" & params.model == "Y~A+B+AB.R")
      """
      sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\tp_loc\tp_sd\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
      """
-   else if (params.gen == "multinom")
+   else if (params.gen == "multinom" & params.model == "Y~A+B+AB.R")
      """
      sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\tp_loc\tlambda\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
      """
+   else if(params.gen == "mvnorm" & params.model == "Y~C+A.R")
+     """
+     sed -i "1 s/^/a\tC_mean\tC_var\tn\tu\tq\tdelta\tr\thk\ty_var\ty_cor\tt\tC\tA\tC_manova\tA_manova\\n/" ${simulation}
+     """
+   else if (params.gen == "copula" & params.model == "Y~C+A.R")
+     """
+     sed -i "1 s/^/a\tC_mean\tC_var\tn\tu\tq\tdelta\tr\thk\ty_var\ty_cor\tc_dist\tt\tC\tA\tC_manova\tA_manova\\n/" ${simulation}
+     """
+   else if (params.gen == "simplex" & params.model == "Y~C+A.R")
+     """
+     sed -i "1 s/^/a\tC_mean\tC_var\tn\tu\tq\tdelta\tr\thk\tp_loc\tp_sd\tt\tC\tA\tC_manova\tA_manova\\n/" ${simulation}
+     """
+   else if (params.gen == "multinom" & params.model == "Y~C+A.R")
+     """
+     sed -i "1 s/^/a\tC_mean\tC_var\tn\tu\tq\tdelta\tr\thk\tp_loc\tlambda\tt\tC\tA\tC_manova\tA_manova\\n/" ${simulation}
+     """
+
 }
 
