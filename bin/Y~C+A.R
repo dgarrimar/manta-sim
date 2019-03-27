@@ -13,6 +13,8 @@ option_list = list(
               help="Number of dependent variables [default %default]", metavar="numeric"),
   make_option(c("-a","--a_levels"), type="numeric", default=2,
               help="Number of levels of factor A [default %default]", metavar="numeric"),
+  make_option(c("-b","--b_levels"), type="numeric", default=3,
+              help="Number of levels of factor B [default %default]", metavar="numeric"),
   make_option(c("-r", "--C_cor"), type="numeric", default=0,
               help="Correlation of covariate C with Y[,1] [default %default]", metavar="numeric"),
   make_option(c("--C_mean"), type="numeric", default=0,
@@ -81,7 +83,6 @@ delta <- opt$delta
 transf <- opt$transf
 S <- opt$simulations
 modelSim <- opt$model
-w <- opt$which
 output <- opt$output
 
 ## 1. Load packages and functions
@@ -93,9 +94,10 @@ library(MASS)
 library(plyr)
 library(copula)
 
-source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/bin/testing/fx.R")
+source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
 
 ## 2. Define parameters 
+# which here is useless, changes are controlled using delta,r
 labs <- label(a, 1, n, u, "A")
 A <- labs[[1]]
 
