@@ -136,37 +136,27 @@ step2h1 <- function(p0, e, step) {
   return(p1)
 }
 
-sim.simplex <- function(q, n, p0, stdev){
-  p <- p0
-  Y <- matrix(NA, nrow = n, ncol = q)
+sim.simplex <- function(q, n, p0, stdev, tol = 1e-10){
+  Y <- t(matrix(p0, nrow = q, ncol = n))
+  elist <- list()
+  for (i in 1:q){
+    elist[[i]] <- rep(0, q)
+    elist[[i]][i] <- 1 
+  }
   for (i in 1:n){
-    for (j in 1:q){
-      e <- rep(0, q); e[j] <- 1
-      d <- rnorm(1, mean = 0, sd = stdev)
-      # d <- rnorm(1, mean = 0, sd = stdev)
-      # d <- (rbeta(1, shape1 = 0.5, shape2 = 0.5)-0.5)/(0.5/sqrt(2))*stdev
-      # d <- (rgamma(1, shape = 1, rate = 1) - 1)*stdev
-      dm <- dM(p, e)
-      if(d > 0) {
-        if (d > dm){
-          d <- dm
-          warning("One observation out of the simplex was corrected.")
-        } 
-      } else if (d < 0) {
-        dm2 <- dm - pi
-        if(d < dm2){
-          d <- dm2
-          warning("One observation out of the simplex was corrected.")
-        }
+    steps <- rnorm(q, mean = 0, sd = stdev) # We may want to select another model
+    elist <- elist[sample(1:q)]
+    for (j in 1:q) {
+      k <- which(elist[[j]] == 1)
+      if (steps[j] < -Y[i, k]){
+        steps[j] <- -Y[i, k] + tol
+        warning("One observation out of the simplex was corrected.")
+      } else if(steps[j] > (1 - Y[i,k]) ){
+        steps[j] <- (1 - Y[i, k]) - tol
+        warning("One observation out of the simplex was corrected.")
       }
-      if(dm == 0){
-        p <- e
-      } else {
-        p <- geodesic(p, e, d)
-      }
+      Y[i, ] <- step2h1(Y[i, ], elist[[j]], steps[j])
     }
-    Y[i, ] <- p
-    p <- p0
   }
   return(Y)
 }
@@ -321,7 +311,6 @@ Sim.mvnorm.C <- function(B, q, n, mu, r, delta, hk, Var, Cor, C_mean, C_var){
   return(Yext)
 }
 
-
 Sim.multinom <- function(B, q, n, N, delta, loc) {
   
   x <- c(loc, rep(1, q-1))
@@ -417,7 +406,6 @@ sim.copula.C <- function(q, n, mu, v, c, distdef, r, C_mean, C_var, tol = 1e-10)
   
   return(Y)
 }
-
 
 Sim.copula <- function(B, q, n, mu, delta, hk, Var, Cor, dd) {
   
