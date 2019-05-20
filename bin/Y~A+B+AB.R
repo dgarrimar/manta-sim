@@ -111,6 +111,14 @@ if(w == "A"){
   stop(sprintf("Unknown factor: '%s'.", w))
 }
 
+if(modelSim == "simplex"){
+
+ tbl <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.tsv", h = T)
+ colnames(tbl) <- c("Q", "L", "S")
+ stdev <- subset(tbl, Q == q & L == loc)$S
+
+}
+
 ## 3. Simulate
 pv.mt <- c()
 for (i in 1:S){
