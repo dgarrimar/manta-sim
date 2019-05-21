@@ -207,6 +207,72 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   return(Y)
 }
 
+Sim.simplex.C <- function(B, C, q, n, loc, delta, r, hk, stdev, check = F, tol = 1e-10){
+  
+  if(check){
+    n <- 1e4
+    B <- rep(1, n)
+  }
+  
+  x <- c(loc, rep(1, q-1))
+  y0 <- x/sum(x)
+  e <- c(1, rep(0, q-1))
+  
+  Y <- matrix(y0, nrow = n, ncol = q, byrow = T)
+  if(delta != 0){
+    e <- c(1, rep(0, q-1))
+    Y[B==1, ] <- matrix(step2h1(y0, e, delta), nrow = sum(B==1), ncol = q, byrow = T)
+    if(!check){
+      Y[B==2, ] <- matrix(step2h1(y0, e, -delta), nrow = sum(B==2), ncol = q, byrow = T) 
+    }
+  }
+  
+  if(r != 0){
+    out <- 0
+    for (k in 1:n){
+      check2 <- Y[k, 1] + C[k]
+      if(check2 < 0) {
+        C[k] <- Y[k,1]
+        out <- out + 1 
+      }else if(check2 > 1) {
+        C[k] <- 1 - Y[k,1]
+        out <- out + 1 
+      }
+      Y[k,] <- step2h1(Y[k,], e, C[k])
+    }
+    if(out/n > 0.1) stop(">10% out")
+  }
+  
+  elist <- list()
+  for (i in 1:q){
+    elist[[i]] <- rep(0, q)
+    elist[[i]][i] <- 1 
+  }
+  for (i in 1:n){
+    steps <- rnorm(q, mean = 0, sd = stdev) # We may want to select another model
+    elist <- elist[sample(1:q)]
+    for (j in 1:q) {
+      k <- which(elist[[j]] == 1)
+      if (steps[j] < -Y[i, k]){
+        steps[j] <- -Y[i, k] + tol
+        warning("One observation out of the simplex was corrected.")
+      } else if(steps[j] > (1 - Y[i,k]) ){
+        steps[j] <- (1 - Y[i, k]) - tol
+        warning("One observation out of the simplex was corrected.")
+      }
+      Y[i, ] <- step2h1(Y[i, ], elist[[j]], steps[j])
+    }
+  }
+  
+  if(check){
+    e <- c(1, rep(0, q-1))
+    y <- step2h1(y0, e, delta)
+    return(data.frame(exp = y, obs = colMeans(Y[B==1,])))
+  } else{
+    return(Y)
+  }
+}
+
 sim.mvnorm <- function(q, n, mu, v, c, tol = 1e-10){
 
   corr <- matrix(c, nrow = q, ncol = q)
@@ -464,3 +530,27 @@ Sim.copula.C <- function(B, q, n, mu, r, delta, hk, Var, Cor, dd, C_mean, C_var)
   
   return(Yext)
 }
+
+Sim.numcov <- function(x1, r = 0.5, m = 0, s = 1) {
+  n     <- length(x1)
+  theta <- acos(r)                              # corresponding angle
+  x2    <- rnorm(n)                             # new random data
+  X     <- cbind(x1, x2)                        # matrix
+  Xctr  <- scale(X, center = TRUE, scale = F)   # center 
+  
+  Id   <- diag(n)                               # identity matrix
+  Q    <- qr.Q(qr(Xctr[ , 1, drop=FALSE]))      # QR-decomposition, just matrix Q
+  P    <- tcrossprod(Q)          # = Q Q'       # projection onto space defined by x1
+  x2o  <- (Id-P) %*% Xctr[ , 2]                 # x2ctr made orthogonal to x1ctr
+  Xc2  <- cbind(Xctr[ , 1], x2o)                # bind to matrix
+  Y    <- Xc2 %*% diag(1/sqrt(colSums(Xc2^2)))  # scale columns to length 1
+  
+  x <- Y[ , 2] + (1 / tan(theta)) * Y[ , 1]     # final new vector
+  # cor(x1, x)                                  # check                                   
+  
+  x <- as.numeric(scale(x, scale = T))          # scale x (it is already centered)
+  x <- x * s + m                                # give custom mean and sd
+  
+  return(x)
+}
+

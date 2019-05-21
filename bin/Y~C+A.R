@@ -101,6 +101,33 @@ source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R
 labs <- label(a, 1, n, u, "A")
 A <- labs[[1]]
 
+if(modelSim %in% c("simplex")){
+  
+  set.seed(1)
+  rc <- c()
+  
+  tbl <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.tsv", h = T)
+  colnames(tbl) <- c("Q", "L", "S")
+  
+  if(! q %in% unique(tbl$Q)){
+    stop(sprintf("stdev not precomputed for q = %s", q))
+  } 
+  
+  stdev <- subset(tbl, Q == q & L == loc)$S
+  
+  if(q %in% c(2,3,5,8,10,12,15)){
+    stdev2 <- 0.023
+  } else if (q == 20) {
+    stdev2 <- 0.0245
+  } else if (q == 25){
+    stdev2 <- 0.0275
+  } 
+  
+  C.gen <- runif(n, min = -stdev2, max = stdev2)
+  C.check <- runif(1e4, min = -stdev2, max = stdev2)
+  C <- C.gen + runif(n, -r, r)
+}
+
 ## 3. Simulate
 pv.mt <- c()
 for (i in 1:S){
@@ -109,19 +136,17 @@ for (i in 1:S){
   
   if (modelSim == "simplex") {
 
-    if( i == 1){ # Sanity check
+    if(i == 1){ # Sanity check
       tol <- 0.01
-      check <- Sim.simplex(ch, q, n, loc, delta, hk, stdev, check = T)
+      check <- Sim.simplex.C(A, C.check, q, n, loc, delta, r, hk, stdev, check = T)
       wm <- which.max(check$exp)
       if( abs(check[wm, "obs"] - check[wm, "exp"]) > tol ) {
         stop("Deviation from expected centroid greater than tolerance.")
       }
     }
     
-    Y <- Sim.simplex(A, q, n, loc, delta, hk, stdev)
-    C <- Sim.numcov(Y[,1], rnorm(1, mean = r, sd = 0.1))
-    C <- scale(C, center = T, scale = T)
-    C <- (C + C_mean)*sqrt(C_var)
+    Y <- Sim.simplex.C(A, C.gen, q, n, loc, delta, r, hk, stdev)
+    rc <- c(rc, cor(Y[,1], C))
     
   } else if (modelSim == "mvnorm") {
     
@@ -190,9 +215,9 @@ if(modelSim == "mvnorm"){
 } else if(modelSim == "copula"){
   params <- c(a, C_mean, C_var, n, u, q, delta, r, hk, Var, Cor, dd, transf)
 } else if(modelSim == "simplex"){
-  params <- c(a, C_mean, C_var, n, u, q, delta, r, hk, loc, stdev, transf)
+  params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, stdev, transf)
 } else if(modelSim == "multinom"){
-  params <- c(a, C_mean, C_var, n, u, q, delta, r, hk, loc, lambda, transf)
+  params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, lambda, transf)
 }
 
 result2write <- colMeans(pv.mt < 0.05)
