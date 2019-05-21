@@ -112,9 +112,14 @@ if(w == "A"){
 }
 
 if(modelSim == "simplex"){
-
+  
  tbl <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.tsv", h = T)
  colnames(tbl) <- c("Q", "L", "S")
+  
+ if(! q %in% unique(tbl$Q)){
+   stop(sprintf("stdev not precomputed for q = %s", q))
+ } 
+ 
  stdev <- subset(tbl, Q == q & L == loc)$S
 
 }
@@ -137,7 +142,8 @@ for (i in 1:S){
     }
     
     Y <- Sim.simplex(ch, q, n, loc, delta, hk, stdev)
-   
+    sd <- mean(apply(Y, 2, sd))
+    
   } else if (modelSim == "mvnorm") {
     
     Y <- Sim.mvnorm(ch, q, n, mu = rep(0, q), delta, hk, Var, Cor)
@@ -198,7 +204,7 @@ if(modelSim == "mvnorm"){
 } else if(modelSim == "copula"){
   params <- c(a, b, n, u, q, delta, hk, Var, Cor, dd, transf)
 } else if(modelSim == "simplex"){
-  params <- c(a, b, n, u, q, delta, hk, loc, stdev, transf)
+  params <- c(a, b, n, u, q, delta, hk, loc, sd, transf)
 } else if(modelSim == "multinom"){
   params <- c(a, b, n, u, q, delta, hk, loc, lambda, transf)
 }
