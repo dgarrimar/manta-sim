@@ -136,8 +136,10 @@ step2h1 <- function(p0, e, step) {
   return(p1)
 }
 
-sim.simplex <- function(q, n, p0, stdev, tol = 1e-10){
-  Y <- t(matrix(p0, nrow = q, ncol = n))
+sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL){
+  if(is.null(Y)){
+    Y <- t(matrix(p0, nrow = q, ncol = n))
+  }
   elist <- list()
   for (i in 1:q){
     elist[[i]] <- rep(0, q)
@@ -207,7 +209,7 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   return(Y)
 }
 
-Sim.simplex.C <- function(B, C, q, n, loc, delta, r, hk, stdev, check = F, tol = 1e-10){
+Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e-10){
   
   if(check){
     n <- 1e4
@@ -217,57 +219,34 @@ Sim.simplex.C <- function(B, C, q, n, loc, delta, r, hk, stdev, check = F, tol =
   x <- c(loc, rep(1, q-1))
   y0 <- x/sum(x)
   e <- c(1, rep(0, q-1))
-  
   Y <- matrix(y0, nrow = n, ncol = q, byrow = T)
+  
   if(delta != 0){
-    e <- c(1, rep(0, q-1))
     Y[B==1, ] <- matrix(step2h1(y0, e, delta), nrow = sum(B==1), ncol = q, byrow = T)
     if(!check){
       Y[B==2, ] <- matrix(step2h1(y0, e, -delta), nrow = sum(B==2), ncol = q, byrow = T) 
     }
   }
   
-  if(r != 0){
-    out <- 0
-    for (k in 1:n){
-      check2 <- Y[k, 1] + C[k]
-      if(check2 < 0) {
-        C[k] <- Y[k,1]
-        out <- out + 1 
-      }else if(check2 > 1) {
-        C[k] <- 1 - Y[k,1]
-        out <- out + 1 
-      }
-      Y[k,] <- step2h1(Y[k,], e, C[k])
+  out <- 0
+  for (k in 1:n){
+    check2 <- Y[k, 1] + C[k]
+    if (check2 < 0) {
+      C[k] <- Y[k,1]
+      out <- out + 1 
+    } else if(check2 > 1) {
+      C[k] <- 1 - Y[k,1]
+      out <- out + 1 
     }
-    if(out/n > 0.1) stop(">10% out")
+    Y[k,] <- step2h1(Y[k,], e, C[k])
   }
+  if(out/n > 0.1) stop(">10% out")
   
-  elist <- list()
-  for (i in 1:q){
-    elist[[i]] <- rep(0, q)
-    elist[[i]][i] <- 1 
-  }
-  for (i in 1:n){
-    steps <- rnorm(q, mean = 0, sd = stdev) # We may want to select another model
-    elist <- elist[sample(1:q)]
-    for (j in 1:q) {
-      k <- which(elist[[j]] == 1)
-      if (steps[j] < -Y[i, k]){
-        steps[j] <- -Y[i, k] + tol
-        warning("One observation out of the simplex was corrected.")
-      } else if(steps[j] > (1 - Y[i,k]) ){
-        steps[j] <- (1 - Y[i, k]) - tol
-        warning("One observation out of the simplex was corrected.")
-      }
-      Y[i, ] <- step2h1(Y[i, ], elist[[j]], steps[j])
-    }
-  }
+  Y <- sim.simplex(q, n, p0, stdev, Y = Y)
   
   if(check){
-    e <- c(1, rep(0, q-1))
     y <- step2h1(y0, e, delta)
-    return(data.frame(exp = y, obs = colMeans(Y[B==1,])))
+    return(data.frame(exp = y, obs = colMeans(Y)))
   } else{
     return(Y)
   }
