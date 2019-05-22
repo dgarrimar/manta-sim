@@ -37,6 +37,7 @@ params.c_dist = 'unif-0-1'
 // Generation: simplex (proportions)
 params.p_loc = 1
 params.p_sd = 0.1
+params.p_dist = 'norm'
 
 // Generation: multinomial
 params.lambda = 1000
@@ -87,6 +88,7 @@ if (params.help) {
   log.info 'Additional parameters for generation = simplex:'
   log.info ' --p_loc LOCATION            location in the simplex of the generator model, 1 is centered (default: 1)'
   log.info ' --p_sd STDEV                standard deviation of the generator model (default: 0.1)'
+  log.info ' --p_dist DISTRIBUTION       distribution of the generator model (default: norm)'
   log.info ''
   log.info 'Additional parameters for generation = multinom:'
   log.info ' --lambda LAMBDA             lambda parameter (Poisson distribution) to generate multinomial distribution\'s size parameter (default: 1000)'
@@ -139,6 +141,7 @@ if(params.gen == 'mvnorm'){
   log.info '---------------------'
   log.info "Location in the simplex      : ${params.p_loc}"
   log.info "Generation stdev             : ${params.p_sd}"
+  log.info "Generation distribution      : ${params.p_dist}"
 } else if (params.gen == 'multinom'){
   log.info 'Additional parameters'
   log.info '---------------------'
@@ -158,7 +161,7 @@ log.info ''
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','c_dist','lambda','r','C_mean','C_var']){
+  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','p_dist','c_dist','lambda','r','C_mean','C_var']){
     grid[it] = params[it]
   }
 }
@@ -195,7 +198,8 @@ process simulation {
     each y_var from grid.y_var
     each y_cor from grid.y_cor
     each p_loc from grid.p_loc
-    each p_sd from grid.p_sd      
+    each p_sd from grid.p_sd
+    each p_dist from grid.p_dist      
     each lambda from grid.lambda
     each c_dist from grid.c_dist
     each r from grid.r
@@ -208,7 +212,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
     """
 }
 
@@ -236,7 +240,7 @@ process end {
      """
    else if (params.gen == "simplex" & params.model == "Y~A+B+AB.R")
      """
-     sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\tp_loc\tp_sd\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
+     sed -i "1 s/^/a\tb\tn\tu\tq\tdelta\thk\tp_loc\tp_dist\tp_sd\tt\tA\tB\tAB\tA_manova\tB_manova\tAB_manova\\n/" ${simulation}
      """
    else if (params.gen == "multinom" & params.model == "Y~A+B+AB.R")
      """
@@ -252,7 +256,7 @@ process end {
      """
    else if (params.gen == "simplex" & params.model == "Y~C+A.R")
      """
-     sed -i "1 s/^/a\tC_mean\tC_var\tn\tu\tq\tdelta\tr\thk\tp_loc\tp_sd\tt\tC\tA\tC_manova\tA_manova\\n/" ${simulation}
+     sed -i "1 s/^/a\tC_mean\tC_var\tn\tu\tq\tdelta\tr\thk\tp_loc\tp_dist\tp_sd\tt\tC\tA\tC_manova\tA_manova\\n/" ${simulation}
      """
    else if (params.gen == "multinom" & params.model == "Y~C+A.R")
      """

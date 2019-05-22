@@ -136,17 +136,38 @@ step2h1 <- function(p0, e, step) {
   return(p1)
 }
 
-sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL){
+betasd <- function(a,b){
+  sqrt((a*b) / ( (a+b)^2 * (a+b+1) ))
+}
+
+gammasd <- function(shape, scale){
+  sqrt(shape*scale^2)
+}
+
+sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL, dist = "norm"){
+  
   if(is.null(Y)){
     Y <- t(matrix(p0, nrow = q, ncol = n))
   }
+  
   elist <- list()
   for (i in 1:q){
     elist[[i]] <- rep(0, q)
     elist[[i]][i] <- 1 
   }
+  
   for (i in 1:n){
-    steps <- rnorm(q, mean = 0, sd = stdev) # We may want to select another model
+    
+    if(dist == "norm"){
+      steps <- rnorm(q, mean = 0, sd = stdev) 
+    } else if(dist == "gamma"){
+      steps <- (rgamma(q, shape = 1, scale = 100) - 1)/gammasd(1, 100)*stdev
+    } else if(dist == "beta"){
+      steps <- (rbeta(q, shape1 = 0.5, shape2 = 0.5) - 0.5)/betasd(0.5, 0.5)*stdev
+    } else {
+      stop (sprintf("Unknown dist '%s'.", dist))
+    }
+    
     elist <- elist[sample(1:q)]
     for (j in 1:q) {
       k <- which(elist[[j]] == 1)
@@ -163,7 +184,7 @@ sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL){
   return(Y)
 }
 
-Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
+Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F, dist = "norm"){
   
   x <- c(loc, rep(1, q-1))
   y0 <- x/sum(x)
@@ -171,11 +192,11 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
   if(check){
     e <- c(1, rep(0, q-1))
     y <- step2h1(y0, e, delta)
-    Y <- sim.simplex(q, 1e4, y, stdev*hk)
+    Y <- sim.simplex(q, 1e4, y, stdev*hk, dist = dist)
     return(data.frame(exp = y, obs = colMeans(Y)))
   }
   
-  Y <- sim.simplex(q, n, y0, stdev)
+  Y <- sim.simplex(q, n, y0, stdev, dist = dist)
   
   if (delta != 0){
     
@@ -188,12 +209,12 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
       levs <- levels(B)
       b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]   # Recover b
       B <- mapvalues(B, from = levs, to = 1:length(levs))             # Relevel
-      Y[B == (1+b), ] <- sim.simplex(q, sum(B==(1+b)), yprime, stdev)
-      Y[B == (2+b), ] <- sim.simplex(q, sum(B==(2+b)), y, stdev) 
+      Y[B == (1+b), ] <- sim.simplex(q, sum(B==(1+b)), yprime, stdev, dist = dist)
+      Y[B == (2+b), ] <- sim.simplex(q, sum(B==(2+b)), y, stdev, dist = dist) 
     } 
     
-    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk)   
-    Y[B == 2, ] <- sim.simplex(q, sum(B==2), yprime, stdev)
+    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y, stdev*hk, dist = dist)   
+    Y[B == 2, ] <- sim.simplex(q, sum(B==2), yprime, stdev, dist = dist)
     
   } else {
     
@@ -203,13 +224,13 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F){
       B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
     } 
     
-    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk)
+    Y[B == 1, ] <- sim.simplex(q, sum(B==1), y0 , stdev*hk, dist = dist)
   }
   
   return(Y)
 }
 
-Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e-10){
+Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e-10, dist = "norm"){
   
   if(check){
     n <- 1e4
@@ -242,7 +263,7 @@ Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e
   }
   if(out/n > 0.1) stop(">10% out")
   
-  Y <- sim.simplex(q, n, p0, stdev, Y = Y)
+  Y <- sim.simplex(q, n, p0, stdev, Y = Y, dist = dist)
   
   if(check){
     y <- step2h1(y0, e, delta)

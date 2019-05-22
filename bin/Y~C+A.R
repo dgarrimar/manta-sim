@@ -43,6 +43,9 @@ option_list = list(
   make_option(c("-p","--position"), type="numeric", default=1,
               help="location of the 'simplex' generator model [default %default]", 
               metavar="numeric"),
+  make_option(c("--p_dist"), type="character", default="norm",
+              help="Distribution for 'simplex' generator model: norm, gamma or beta [default %default]", 
+              metavar="character"),
   make_option(c("-D","--DistDef"), type="character", default="unif-0-1",
               help="Multivariate non-normal distribution definition [default %default]", 
               metavar="character"),
@@ -78,6 +81,7 @@ dd <- opt$DistDef
 lambda <- opt$lambda
 stdev <- opt$stdev
 loc <- opt$position
+pdist <- opt$p_dist
 hk <- opt$heterosk
 delta <- opt$delta
 transf <- opt$transf
@@ -138,14 +142,14 @@ for (i in 1:S){
 
     if(i == 1){ # Sanity check
       tol <- 0.01
-      check <- Sim.simplex.C(A, C.check, q, n, loc, delta, hk, stdev, check = T)
+      check <- Sim.simplex.C(A, C.check, q, n, loc, delta, hk, stdev, check = T, dist = pdist)
       wm <- which.max(check$exp)
       if( abs(check[wm, "obs"] - check[wm, "exp"]) > tol ) {
         stop("Deviation from expected centroid greater than tolerance.")
       }
     }
     
-    Y <- Sim.simplex.C(A, C.gen, q, n, loc, delta, hk, stdev)
+    Y <- Sim.simplex.C(A, C.gen, q, n, loc, delta, hk, stdev, dist = pdist)
     rc <- c(rc, cor(Y[,1], C))
     
   } else if (modelSim == "mvnorm") {
@@ -215,7 +219,7 @@ if(modelSim == "mvnorm"){
 } else if(modelSim == "copula"){
   params <- c(a, C_mean, C_var, n, u, q, delta, r, hk, Var, Cor, dd, transf)
 } else if(modelSim == "simplex"){
-  params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, stdev, transf)
+  params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, pdist, stdev, transf)
 } else if(modelSim == "multinom"){
   params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, lambda, transf)
 }
