@@ -138,14 +138,14 @@ for (i in 1:S){
 
     if(i == 1){ # Sanity check
       tol <- 0.01
-      check <- Sim.simplex.C(A, C.check, q, n, loc, delta, r, hk, stdev, check = T)
+      check <- Sim.simplex.C(A, C.check, q, n, loc, delta, hk, stdev, check = T)
       wm <- which.max(check$exp)
       if( abs(check[wm, "obs"] - check[wm, "exp"]) > tol ) {
         stop("Deviation from expected centroid greater than tolerance.")
       }
     }
     
-    Y <- Sim.simplex.C(A, C.gen, q, n, loc, delta, r, hk, stdev)
+    Y <- Sim.simplex.C(A, C.gen, q, n, loc, delta, hk, stdev)
     rc <- c(rc, cor(Y[,1], C))
     
   } else if (modelSim == "mvnorm") {
