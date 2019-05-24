@@ -94,7 +94,7 @@ if (params.help) {
   log.info ' --lambda LAMBDA             lambda parameter (Poisson distribution) to generate multinomial distribution\'s size parameter (default: 1000)'
   log.info ''
   log.info 'Additional parameters for model = Y~C+A.R'
-  log.info ' --r NOISE                   amount of noise added to the correlation between C and Y1 (default: 0)'
+  log.info ' --r CORRELATION             (if generation = simplex: amount of noise added to the) correlation between C and Y1 (default: 0)'
   log.info ' --C_mean MEAN               mean of covariate C (default: 0)'
   log.info ' --C_var VARIANCE            variance of covariate C (default: 1)'
   log.info ''
@@ -148,7 +148,10 @@ if(params.gen == 'mvnorm'){
   log.info "Lambda                       : ${params.lambda}"
 }
 if(params.model == 'Y~C+A.R'){
-  log.info "Noise added to cor(C, Y1)    : ${params.r}"
+  if(params.gen == 'simplex'){
+    log.info "(Noise added to) cor(C, Y1)  : ${params.r}"
+  }
+  log.info "cor(C, Y[,1])                : ${params.r}"
   log.info "Mean of covariate C          : ${params.C_mean}"
   log.info "Variance of covariate C      : ${params.C_var}"
 }

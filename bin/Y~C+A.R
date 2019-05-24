@@ -16,7 +16,7 @@ option_list = list(
   make_option(c("-b","--b_levels"), type="numeric", default=3,
               help="Number of levels of factor B [default %default]", metavar="numeric"),
   make_option(c("-r", "--C_noise"), type="numeric", default=0,
-              help="Noise added to the correlation of covariate C with Y[,1] [default %default]", metavar="numeric"),
+              help="(If generator = simplex: noise added to the) correlation of covariate C with Y[,1] [default %default]", metavar="numeric"),
   make_option(c("--C_mean"), type="numeric", default=0,
               help="Mean of covariate C [default %default]", metavar="numeric"),
   make_option(c("--C_var"), type="numeric", default=1,
