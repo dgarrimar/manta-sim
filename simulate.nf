@@ -26,6 +26,7 @@ params.gen = 'mvnorm'
 params.sim = 10000
 params.delta = 0
 params.hk = 1
+params.adonis = 0
 
 // Generation: multivariate normal
 params.y_var = 'equal'
@@ -73,6 +74,7 @@ if (params.help) {
   log.info ' --sim SIMULATIONS           number of simulations (default: 10000)'
   log.info ' --delta DELTA               change in H1 (default: 0.1)'
   log.info ' --hk HETEROSKEDASTICITY     heteroskedasticity, 1 is homoskedastic (default: 1)'
+  log.info ' --adonis PERMUTATIONS       should permutation test be performed? Specify number of permutations (default: 0)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
@@ -122,6 +124,7 @@ log.info "Data generation              : ${params.gen}"
 log.info "Number of simulations        : ${params.sim}"
 log.info "Change in H1 (delta)         : ${params.delta}"
 log.info "Heteroskedasticity           : ${params.hk}"
+log.info "Adonis permutation test      : ${params.adonis}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
@@ -180,7 +183,7 @@ grid.keySet().each {
             seq += val.round(4)
             val += step.toFloat().round(4)
         }
-	grid[it] = seq
+        grid[it] = seq
     }
 }
 
@@ -215,7 +218,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
     """
 }
 

@@ -56,6 +56,9 @@ option_list = list(
               help="Heteoskedasticity degree (level 1) [default %default]", metavar="numeric"),
   make_option(c("-t","--transf"), type="character", default="none",
               help="Data transformation: sqrt or None [default %default]", metavar="character"),
+  make_option(c("--adonis"), type="numeric", default=0,
+              help="Should permutation test be performed? Specify number of permutations [default %default]",
+              metavar="numeric"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output file name", metavar="character")
 )
@@ -87,6 +90,7 @@ S <- opt$simulations
 modelSim <- opt$model
 w <- opt$which
 output <- opt$output
+adonis <- opt$adonis
 
 ## 1. Load packages and functions
 
@@ -174,7 +178,12 @@ for (i in 1:S){
   } else {
     stop(sprintf("Unknown option: transf = '%s'.", transf))
   }
-  
+
+  if (adonis != 0){
+    library(vegan)
+    ADONIS <- adonis(dist(Y) ~ A + B + A:B, permutations = adonis)$aov.tab[,6][1:3]
+  }  
+
   # lm and residuals
   Y <- scale(Y, center = T, scale = F)
   fit <- lm(Y ~ A + B + A:B)
@@ -200,7 +209,11 @@ for (i in 1:S){
   pv.acc <- mapply(pv.f, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
   MANOVA <- tryCatch({summary(manova(fit))$stats[,6][1:3]}, 
                      error = function(e){return(rep(NA, 3))}) # MANOVA added for comparison, it may fail with lin. dep. variables
-  pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
+  if (adonis==0){
+    pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
+  } else {
+    pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA, ADONIS))
+  }
 }
 
 if(modelSim == "mvnorm"){

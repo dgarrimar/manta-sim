@@ -56,6 +56,9 @@ option_list = list(
               help="Heteoskedasticity degree (level 1) [default %default]", metavar="numeric"),
   make_option(c("-t","--transf"), type="character", default="none",
               help="Data transformation: sqrt or None [default %default]", metavar="character"),
+  make_option(c("--adonis"), type="numeric", default=0,
+              help="Should permutation test be performed? Specify number of permutations [default %default]",
+              metavar="numeric"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output file name", metavar="character")
 )
@@ -88,6 +91,7 @@ transf <- opt$transf
 S <- opt$simulations
 modelSim <- opt$model
 output <- opt$output
+adonis <- opt$adonis
 
 ## 1. Load packages and functions
 
@@ -111,21 +115,17 @@ if(modelSim %in% c("simplex")){
   rc <- c()
   
   tbl <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.tsv", h = T)
-  colnames(tbl) <- c("Q", "L", "S")
+  tbl2 <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.tsv", h = T)
+  colnames(tbl) <- colnames(tbl2) <- c("Q", "L", "S")
   
-  if(! q %in% unique(tbl$Q)){
+  if(! q %in% unique(tbl$Q) || ! q %in% unique(tbl2$Q)){
     stop(sprintf("stdev not precomputed for q = %s", q))
-  } 
+  } else if (! loc %in% unique(tbl$L) || ! loc %in% unique(tbl$L)) {
+    stop(sprintf("stdev not precomputed for p_loc = %s", loc))
+  }
   
   stdev <- subset(tbl, Q == q & L == loc)$S
-  
-  if(q %in% c(2,3,5,8,10,12,15)){
-    stdev2 <- 0.023
-  } else if (q == 20) {
-    stdev2 <- 0.0245
-  } else if (q == 25){
-    stdev2 <- 0.0275
-  } 
+  stdev2 <- subset(tbl2, Q == q & L == loc)$S
   
   C.gen <- runif(n, min = -stdev2, max = stdev2)
   C.check <- runif(1e4, min = -stdev2, max = stdev2)
@@ -150,6 +150,7 @@ for (i in 1:S){
     }
     
     Y <- Sim.simplex.C(A, C.gen, q, n, loc, delta, hk, stdev, dist = pdist)
+    sd <- mean(apply(Y, 2, sd))
     rc <- c(rc, cor(Y[,1], C))
     
   } else if (modelSim == "mvnorm") {
@@ -161,10 +162,8 @@ for (i in 1:S){
   } else if (modelSim == "multinom") {
    
     N <- rpois(1, lambda)
-    Y <- Sim.multinom(A, q, n, N, delta, loc)
-    C <- Sim.numcov(Y[,1], rnorm(1, mean = r, sd = 0.1))
-    C <- scale(C, center = T, scale = T)
-    C <- (C + C_mean)*sqrt(C_var)
+    Y <- Sim.multinom.C(A, C, q, n, N, delta, loc)
+    rc <- c(rc, cor(Y[,1], C))
     
   } else if (modelSim == "copula") {
 
@@ -185,6 +184,11 @@ for (i in 1:S){
   } else {
     stop(sprintf("Unknown option: transf = '%s'.", transf))
   }
+  
+  if (adonis != 0){
+    library(vegan)
+    ADONIS <- adonis(dist(Y) ~ A + B + A:B, permutations = adonis)$aov.tab[,6][1:3]
+  }  
   
   # lm and residuals
   Y <- scale(Y, center = T, scale = F)
@@ -212,6 +216,12 @@ for (i in 1:S){
   MANOVA <- tryCatch({summary(manova(fit))$stats[,6][1:2]}, 
                      error = function(e){return(rep(NA, 3))}) # MANOVA added for comparison, it may fail with lin. dep. variables
   pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
+  
+  if (adonis==0){
+    pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
+  } else {
+    pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA, ADONIS))
+  }
 }
 
 if(modelSim == "mvnorm"){
@@ -219,7 +229,7 @@ if(modelSim == "mvnorm"){
 } else if(modelSim == "copula"){
   params <- c(a, C_mean, C_var, n, u, q, delta, r, hk, Var, Cor, dd, transf)
 } else if(modelSim == "simplex"){
-  params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, pdist, stdev, transf)
+  params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, pdist, sd, transf)
 } else if(modelSim == "multinom"){
   params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, lambda, transf)
 }
