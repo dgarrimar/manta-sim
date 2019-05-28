@@ -121,7 +121,7 @@ if(w == "A"){
 
 if(modelSim == "simplex"){
   
- tbl <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.tsv", h = T)
+ tbl <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.%s.tsv", pdist), h = T)
  colnames(tbl) <- c("Q", "L", "S")
   
  if(! q %in% unique(tbl$Q)){
