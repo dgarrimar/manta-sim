@@ -114,8 +114,8 @@ if(modelSim == "simplex"){
   set.seed(1)
   rc <- c()
   
-  tbl <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.%s.tsv", qdist), h = T)
-  tbl2 <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.%s.tsv", qdist), h = T)
+  tbl <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.%s.tsv", pdist), h = T)
+  tbl2 <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.%s.tsv", pdist), h = T)
   colnames(tbl) <- colnames(tbl2) <- c("Q", "L", "S")
   
   if(! q %in% unique(tbl$Q) || ! q %in% unique(tbl2$Q)){
