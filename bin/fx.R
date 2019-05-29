@@ -230,7 +230,7 @@ Sim.simplex <- function(B, q, n, loc, delta, hk, stdev, check = F, dist = "norm"
   return(Y)
 }
 
-Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e-10, dist = "norm"){
+Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, dist = "norm"){
   
   if(check){
     n <- 1e4
@@ -253,7 +253,7 @@ Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e
   for (k in 1:n){
     check2 <- Y[k, 1] + C[k]
     if (check2 < 0) {
-      C[k] <- Y[k,1]
+      C[k] <- -Y[k,1]
       out <- out + 1 
     } else if(check2 > 1) {
       C[k] <- 1 - Y[k,1]
@@ -263,7 +263,7 @@ Sim.simplex.C <- function(B, C, q, n, loc, delta, hk, stdev, check = F, tol = 1e
   }
   if(out/n > 0.1) stop(">10% out")
   
-  Y <- sim.simplex(q, n, p0, stdev, Y = Y, dist = dist)
+  Y <- sim.simplex(q, n, y0, stdev, Y = Y, dist = dist)
   
   if(check){
     y <- step2h1(y0, e, delta)
@@ -403,6 +403,59 @@ Sim.multinom <- function(B, q, n, N, delta, loc) {
     Y[B == 2, ] <- t(rmultinom(sum(B==2), N, yprime))   
     
   } 
+  return(Y)
+}
+
+Sim.multinom.C <- function(B, C, q, n, N, delta, loc, tol = 1e-10){
+  
+  x <- c(loc, rep(1, q-1))
+  y0 <- x/sum(x)
+  Y <- t(rmultinom(n, N, y0)) 
+  Y <- Y/N
+  e <- c(1, rep(0, q-1))
+  
+  if(delta != 0){
+    Y[B==1, ] <- t(rmultinom(sum(B==1), N, step2h1(y0, e, delta)))/N 
+    Y[B==2, ] <- t(rmultinom(sum(B==2), N, step2h1(y0, e, -delta)))/N
+  }
+  
+  if(any(Y==1)){
+    warning(sprintf("rmultinom generated c(1, 0, ... ). Adjusted by tol = %s.", tol))
+    Y[which(Y[,1]==1), 1] <- 1 - tol
+    Y[which(Y[,1]==1), 2] <- tol
+  }
+  
+  out <- 0
+  for (k in 1:n){
+    check2 <- Y[k, 1] + C[k]
+    if (check2 < 0) {
+      C[k] <- -Y[k,1]
+      out <- out + 1 
+    } else if(check2 > 1) {
+      C[k] <- 1 - Y[k,1]
+      out <- out + 1 
+    }
+    Y[k,] <- step2h1(Y[k,], e, C[k])
+  }
+  if(out/n > 0.1) stop(">10% out")
+  
+  Y <- round(N*Y)
+  
+  modulo <- (N - rowSums(Y))
+  for (k in 1:n){
+    for (nc in 2:ncol(Y)){
+      if(Y[k, nc] + modulo[k] >= 0){
+        Y[k, nc] <- Y[k, nc] + modulo[k]
+        break
+      } 
+    }
+  }
+
+  if(!all(rowSums(Y) == N)){
+    stop("rowSums != N")
+  }
+  
+  
   return(Y)
 }
 

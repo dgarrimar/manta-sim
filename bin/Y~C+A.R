@@ -109,13 +109,13 @@ source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R
 labs <- label(a, 1, n, u, "A")
 A <- labs[[1]]
 
-if(modelSim %in% c("simplex")){
+if(modelSim == "simplex"){
   
   set.seed(1)
   rc <- c()
   
-  tbl <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.tsv", h = T)
-  tbl2 <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.tsv", h = T)
+  tbl <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.%s.tsv", qdist), h = T)
+  tbl2 <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.%s.tsv", qdist), h = T)
   colnames(tbl) <- colnames(tbl2) <- c("Q", "L", "S")
   
   if(! q %in% unique(tbl$Q) || ! q %in% unique(tbl2$Q)){
@@ -129,6 +129,19 @@ if(modelSim %in% c("simplex")){
   
   C.gen <- runif(n, min = -stdev2, max = stdev2)
   C.check <- runif(1e4, min = -stdev2, max = stdev2)
+  C <- C.gen + runif(n, -r, r)
+} else if (modelSim == "multinom"){
+  set.seed(1)
+  rc <- c()
+  tbl2 <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.multinom.tsv", h = T)
+  colnames(tbl2) <- c("Q", "L", "S")
+  if(! q %in% unique(tbl2$Q)){
+    stop(sprintf("stdev not precomputed for q = %s", q))
+  } else if (! loc %in% unique(tbl2$L)) {
+    stop(sprintf("stdev not precomputed for p_loc = %s", loc))
+  }
+  stdev2 <- subset(tbl2, Q == q & L == loc)$S
+  C.gen <- runif(n, min = -stdev2, max = stdev2)
   C <- C.gen + runif(n, -r, r)
 }
 
