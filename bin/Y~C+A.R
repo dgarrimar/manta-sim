@@ -200,7 +200,7 @@ for (i in 1:S){
   
   if (adonis != 0){
     library(vegan)
-    ADONIS <- adonis(dist(Y) ~ A + B + A:B, permutations = adonis)$aov.tab[,6][1:3]
+    ADONIS <- adonis(dist(Y) ~ C + A, permutations = adonis)$aov.tab[,6][1:3]
   }  
   
   # lm and residuals
