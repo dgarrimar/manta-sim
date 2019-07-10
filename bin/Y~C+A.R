@@ -233,6 +233,7 @@ for (i in 1:S){
   if (adonis==0){
     pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
   } else {
+    names(ADONIS) <- names(pv.acc[1,])
     pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA, ADONIS))
   }
 }
