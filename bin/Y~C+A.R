@@ -247,7 +247,11 @@ if(modelSim == "mvnorm"){
   params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, lambda, transf)
 }
 
-result2write <- colMeans(pv.mt < 0.05)
+if (S == 1 && adonis != 0){
+  result2write <- pv.mt
+} else {
+  result2write <- colMeans(pv.mt < 0.05)
+}
 
 write.table(t(c(params, result2write)), file = output, sep = "\t", col.names = F, row.names = F, quote = F)
 
