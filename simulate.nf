@@ -167,7 +167,7 @@ log.info ''
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','p_dist','c_dist','lambda','r','C_mean','C_var']){
+  if(it in ['a','b','n','u','q','delta','hk','y_var','y_cor','p_loc','p_sd','p_dist','c_dist','lambda','r','C_mean','C_var','t']){
     grid[it] = params[it]
   }
 }
@@ -211,6 +211,7 @@ process simulation {
     each r from grid.r
     each C_mean from grid.C_mean
     each C_var from grid.C_var
+    each t from grid.t
 
     output:
     
@@ -218,7 +219,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -m ${params.gen} -t ${params.t} -w ${params.which} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -m ${params.gen} -t $t -w ${params.which} -o sim.txt
     """
 }
 
