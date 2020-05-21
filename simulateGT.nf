@@ -91,15 +91,11 @@ if( params.l % params.b != 0) {
  *  Split
  */
 
-Channel
-    .from(file(params.genotype))
-    .map{ it -> [it, it + ".tbi"] }
-    .into{gt1_ch; gt2_ch}
-
 process split {
 
     input:
-    set file(vcf), file(index) from gt1_ch
+    file(vcf) from file(params.genotype)
+    file(index) from file("${params.genotype}.tbi")
 
     output:
     file ("chunk*") into chunks_ch
@@ -116,7 +112,7 @@ process split {
  *  Simulate individuals
  */
 
-chunks_ch.flatten().set{chunksf_ch}
+chunks_ch.set{chunksf_ch}
 
 process simulate {
 
@@ -124,7 +120,8 @@ process simulate {
     conda '/nfs/users2/rg/dgarrido/.conda/envs/ml'
 
     input:
-    set file(vcf), file(index) from gt2_ch
+    file(vcf) from file(params.genotype)
+    file(index) from file("${params.genotype}.tbi")
     file(pop) from file(params.metadata) 
     each file(chunk) from chunksf_ch
 
