@@ -122,7 +122,7 @@ process simulate {
     input:
     file(vcf) from file(params.genotype)
     file(index) from file("${params.genotype}.tbi")
-    file(pop) from file(params.metadata) 
+    file(meta) from file(params.metadata) 
     each file(chunk) from chunksf_ch
 
     output:
@@ -132,7 +132,7 @@ process simulate {
     """
     s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf 
-    simulate.py -g ${chunk}.vcf -p $pop -A ${params.A} -n ${params.n} -b ${params.b} -s \$s > ${chunk}.sim
+    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -s \$s -e > ${chunk}.sim
     """
 }
 
