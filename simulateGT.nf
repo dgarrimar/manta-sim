@@ -129,13 +129,13 @@ process simulate {
     each file(chunk) from chunksf_ch
 
     output:
-    file ('sim.tsv') into sim_ch
+    file ("${chunk}.sim") into sim_ch
 
     script:
     """
     s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf 
-    simulate.py -g ${chunk}.vcf -p $pop -A ${params.A} -n ${params.n} -b ${params.b} -s \$s > sim.tsv
+    simulate.py -g ${chunk}.vcf -p $pop -A ${params.A} -n ${params.n} -b ${params.b} -s \$s > ${chunk}.sim
     """
 }
 
@@ -144,7 +144,7 @@ process simulate {
  *  Reduce
  */
 
-sim_ch.collectFile(name: "${params.out}").set{pub_ch}
+sim_ch.collectFile(name: "${params.out}", sort: { it.name }).set{pub_ch}
 
 process end {
 
