@@ -1,5 +1,6 @@
 clean
 log
+test
 data
 .nextflow*
 result
