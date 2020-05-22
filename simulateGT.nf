@@ -19,6 +19,7 @@ params.b = 1000
 params.v = 100000
 params.seed = 123
 params.pca = false
+params.mode = 'e' // e, p, ep
 params.help = false
 
 /*
@@ -42,6 +43,7 @@ if (params.help) {
   log.info ' --l VARIANTS/CHUNK          variants per chunk (default: 10,000)'
   log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
   log.info ' --A ANCESTORS               number of ancestors (default: 10)'
+  log.info ' --M MODE                    simulation mode (default: e)'
   log.info ' --pca PCA                   perform PCA (default: false)'
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
@@ -65,6 +67,7 @@ log.info "No. of variants per chunk    : ${params.l}"
 log.info "No. of variants per block    : ${params.b}"
 log.info "No. of ancestors             : ${params.A}"
 log.info "Perform PCA                  : ${params.pca}"
+log.info "Simulation mode              : ${params.mode}"
 log.info "Seed                         : ${params.seed}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
@@ -88,13 +91,6 @@ if (!params.genotype) {
 if( params.l % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.l, params.b)
 } 
-
-// Mode PCA
-if (params.pca) {
-    outfmt = "vcf"
-} else {
-    outfmt = "gemma"
-}
 
 
 /* 
@@ -135,12 +131,20 @@ process simulate {
 
     output:
     file ("${chunk}.sim") into sim_ch
+    file ("${chunk}.sim.vcf") optional true into simvcf_ch
 
     script:
+    if (params.pca == true)
     """
     s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf 
-    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -f $outfmt -s \$s -e > ${chunk}.sim
+    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -s \$s -M ${params.mode} -o ${chunk}.sim -v ${chunk}.sim.vcf
+    """
+    else
+    """
+    s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
+    bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf
+    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -s \$s -M ${params.mode} -o ${chunk}.sim
     """
 }
 
@@ -149,25 +153,20 @@ process simulate {
  *  Reduce and generate output
  */
 
-sim_ch.collectFile(name: "${params.out}.${outfmt}", sort: { it.name }).set{out_ch}
+sim_ch.collectFile(name: "${params.out}.gemma", sort: { it.name }).set{out_ch}
+if ( params.pca ){ simvcf_ch.collectFile(name: "${params.out}.vcf", sort: { it.name }).set{outvcf_ch} }
 
 process out {
 
-    if(outfmt == "gemma") { publishDir "${params.dir}" }
+    publishDir "${params.dir}"
 
     input:
     file(sim) from out_ch
  
     output:
-    file(sim) into outh_ch
+    file(sim) into pub_ch
  
     script: 
-    if (outfmt == "vcf")
-    """
-    ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
-    sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $sim 
-    """
-    else
     """
     echo "Done!"
     """
@@ -187,13 +186,15 @@ if (params.pca) {
         publishDir "${params.dir}"
     
         input:
-        file(simvcf) from outh_ch
+        file(simvcf) from outvcf_ch
     
         output:
         file("${params.out}.eigen*") into pca_ch
 
         script:
         """
+        ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
+        sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
         plink --vcf $simvcf --pca --out ${params.out}
         """
     }
