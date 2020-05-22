@@ -11,7 +11,7 @@
 params.genotype = 'data/genotypes.vcf.gz'
 params.metadata = 'data/metadata.tsv'
 params.dir = 'result'
-params.out = 'simulated.vcf'
+params.out = 'simulated.csv'
 params.n = 10000
 params.A = 10
 params.l = 10000
@@ -154,8 +154,7 @@ process end {
    file(out) into end_ch
 
    """
-   ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')   
-   sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $out
+   echo "Done!"
    """
 
 }

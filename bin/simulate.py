@@ -44,7 +44,7 @@ if args.europeans:
             pop = pops[randint(0, len(pops)-1)]
             inds = list(df.loc[df['pop'] == pop, 'sample'])
             ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
-            break
+          
     else:
         inds = list(df.loc[df['super_pop'] == 'EUR', 'sample'])
         for i in range(n):
@@ -61,6 +61,16 @@ else:
         for i in range(n):
             ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
 
+# Format GT
+def formatGT(genotypes):
+    for i, gt in enumerate(genotypes):
+        if (gt == '0|0'):
+            genotypes[i] = "0"
+        elif(gt == '1|0' or genotypes[i] == '0|1'):
+            genotypes[i] = "1"
+        elif(gt == '1|1'):
+            genotypes[i] = "2"
+    return(genotypes)
 
 # Open VCF
 if args.genotypes.endswith('.gz'):
@@ -84,7 +94,12 @@ for line in fh:
         # Obtain genotypes corresponding to the selected ancestor per individual
         line = line.strip().split('\t')
         gt = [line[idx] for idx in ancestors_block_idx]
-        print('\t'.join(line[0:9]) + '\t' + '\t'.join(gt))
+        # print('\t'.join(line[0:9]) + '\t' + '\t'.join(gt))
+        if (line[2] == "."):
+            snp = line[0] + "_" + line[1]
+        else:
+            snp = line[2]
+        print(snp + ", " + ", ".join(formatGT(gt)))
         count += 1
 
 # Close VCF
