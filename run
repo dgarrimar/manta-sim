@@ -1,1 +1,1 @@
-nextflow run simulateGT.nf -profile cluster -bg > log
+nextflow run simulateGT.nf -profile cluster -bg -with-trace > log
