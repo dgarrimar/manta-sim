@@ -99,7 +99,7 @@ for line in fh:
             snp = line[0] + "_" + line[1]
         else:
             snp = line[2]
-        print(snp + ", " + ", ".join(formatGT(gt)))
+        print(snp + ", " + ", ".join(line[3:5]) + ", " + ", ".join(formatGT(gt)))
         count += 1
 
 # Close VCF
