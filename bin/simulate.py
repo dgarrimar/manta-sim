@@ -16,6 +16,7 @@ parser.add_argument("-b", "--blocksize", type=int, help="Number of variants per 
 parser.add_argument("-s", "--seed", type=int, help="Seed for random processes")
 parser.add_argument("-e", "--europeans", action="store_true", default=False, help="Only european populations")
 parser.add_argument("-p", "--popstruct", action="store_true", default=False, help="Simulate population structure")
+parser.add_argument("-f", "--outfmt", type=str, help="Output format")
 
 if len(sys.argv)==1:
     parser.print_help()
@@ -61,17 +62,24 @@ else:
         for i in range(n):
             ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
 
-# Format GT
-def formatGT(genotypes):
-    for i, gt in enumerate(genotypes):
-        if (gt == '0|0'):
-            genotypes[i] = "0"
-        elif(gt == '1|0' or genotypes[i] == '0|1'):
-            genotypes[i] = "1"
-        elif(gt == '1|1'):
-            genotypes[i] = "2"
-    return(genotypes)
-
+# Format output
+def format_out(line, genotypes, outfmt):
+    if outfmt == "gemma":
+        for i, gt in enumerate(genotypes):
+            if (gt == '0|0'):
+                genotypes[i] = "0"
+            elif(gt == '1|0' or genotypes[i] == '0|1'):
+                genotypes[i] = "1"
+            elif(gt == '1|1'):
+                genotypes[i] = "2"
+        if (line[2] == "."):
+            snp = line[0] + "_" + line[1]
+        else:
+            snp = line[2]
+        print(snp + ", " + ", ".join(line[3:5]) + ", " + ", ".join(genotypes))
+    elif outfmt == "vcf":
+        print('\t'.join(line[0:9]) + '\t' + '\t'.join(genotypes))
+        
 # Open VCF
 if args.genotypes.endswith('.gz'):
     fh = gzip.open(args.genotypes, 'rt')
@@ -94,12 +102,7 @@ for line in fh:
         # Obtain genotypes corresponding to the selected ancestor per individual
         line = line.strip().split('\t')
         gt = [line[idx] for idx in ancestors_block_idx]
-        # print('\t'.join(line[0:9]) + '\t' + '\t'.join(gt))
-        if (line[2] == "."):
-            snp = line[0] + "_" + line[1]
-        else:
-            snp = line[2]
-        print(snp + ", " + ", ".join(line[3:5]) + ", " + ", ".join(formatGT(gt)))
+        format_out(line, gt, args.outfmt)
         count += 1
 
 # Close VCF

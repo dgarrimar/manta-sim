@@ -11,13 +11,14 @@
 params.genotype = 'data/genotypes.vcf.gz'
 params.metadata = 'data/metadata.tsv'
 params.dir = 'result'
-params.out = 'simulated.csv'
+params.out = 'simulateGT'
 params.n = 10000
 params.A = 10
 params.l = 10000
 params.b = 1000 
 params.v = 100000
 params.seed = 123
+params.pca = false
 params.help = false
 
 /*
@@ -41,9 +42,10 @@ if (params.help) {
   log.info ' --l VARIANTS/CHUNK          variants per chunk (default: 10,000)'
   log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
   log.info ' --A ANCESTORS               number of ancestors (default: 10)'
+  log.info ' --pca PCA                   perform PCA (default: false)'
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
-  log.info ' --out OUTPUT                output file (default: simulated.vcf)'
+  log.info ' --out OUTPUT                output file prefix (default: simulated)'
   log.info ''
   exit(1)
 }
@@ -62,9 +64,10 @@ log.info "No. of variants (total)      : ${params.v}"
 log.info "No. of variants per chunk    : ${params.l}"
 log.info "No. of variants per block    : ${params.b}"
 log.info "No. of ancestors             : ${params.A}"
+log.info "Perform PCA                  : ${params.pca}"
 log.info "Seed                         : ${params.seed}"
 log.info "Output directory             : ${params.dir}"
-log.info "Output file                  : ${params.out}"
+log.info "Output file prefix           : ${params.out}"
 log.info ''
 
 
@@ -85,6 +88,13 @@ if (!params.genotype) {
 if( params.l % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.l, params.b)
 } 
+
+// Mode PCA
+if (params.pca) {
+    outfmt = "vcf"
+} else {
+    outfmt = "gemma"
+}
 
 
 /* 
@@ -112,8 +122,6 @@ process split {
  *  Simulate individuals
  */
 
-chunks_ch.set{chunksf_ch}
-
 process simulate {
 
     echo true
@@ -123,7 +131,7 @@ process simulate {
     file(vcf) from file(params.genotype)
     file(index) from file("${params.genotype}.tbi")
     file(meta) from file(params.metadata) 
-    each file(chunk) from chunksf_ch
+    each file(chunk) from chunks_ch
 
     output:
     file ("${chunk}.sim") into sim_ch
@@ -132,29 +140,35 @@ process simulate {
     """
     s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf 
-    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -s \$s -e > ${chunk}.sim
+    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -f $outfmt -s \$s -e > ${chunk}.sim
     """
 }
 
 
 /*
- *  Reduce
+ *  Reduce and generate output
  */
 
-sim_ch.collectFile(name: "${params.out}", sort: { it.name }).set{pub_ch}
+sim_ch.collectFile(name: "${params.out}.${outfmt}", sort: { it.name }).set{out_ch}
 
-process end {
+process out {
 
-   publishDir "${params.dir}"
+    publishDir "${params.dir}"
 
-   input:
-   file(out) from pub_ch
-
-   output:
-   file(out) into end_ch
-
-   """
-   echo "Done!"
-   """
-
+    input:
+    file(sim) from out_ch
+ 
+    output:
+    file(sim) into outh_ch
+ 
+    script: 
+    if (outfmt == "vcf")
+    """
+    ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
+    sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $sim 
+    """
+    else
+    """
+    echo "Done!"
+    """
 }
