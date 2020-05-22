@@ -154,7 +154,7 @@ process end {
    file(out) into end_ch
 
    """
-   ids=\$(for (( i = 0; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')   
+   ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')   
    sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $out
    """
 
