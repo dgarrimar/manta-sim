@@ -153,7 +153,7 @@ sim_ch.collectFile(name: "${params.out}.${outfmt}", sort: { it.name }).set{out_c
 
 process out {
 
-    publishDir "${params.dir}"
+    if(outfmt == "gemma") { publishDir "${params.dir}" }
 
     input:
     file(sim) from out_ch
@@ -171,4 +171,31 @@ process out {
     """
     echo "Done!"
     """
+}
+
+/*
+ * Plot PCA
+ *
+ *  - We assume there are not missing genotypes
+ *
+ */
+
+if (params.pca) {
+
+    process pca {
+
+        publishDir "${params.dir}"
+    
+        input:
+        file(simvcf) from outh_ch
+    
+        output:
+        file("${params.out}.eigen*") into pca_ch
+
+        script:
+        """
+        plink --vcf $simvcf --pca --out ${params.out}
+        """
+    }
+
 }
