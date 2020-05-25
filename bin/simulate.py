@@ -37,8 +37,6 @@ blocksize = args.blocksize
 
 ancestors = dict()
 
-seed(args.seed)
-
 # Define simulation mode
 if 'e' in args.mode:
     europeans = True
@@ -48,6 +46,8 @@ if 'p' in args.mode:
     popstr = True
 else:
     popstr = False
+
+seed(0)
 
 if europeans:
     if popstr:
@@ -102,6 +102,8 @@ if args.outvcf is not None:
     outvcf_fh = open(args.outvcf, 'w')
 else:
     outvcf_fh = None
+
+seed(args.seed)
 
 # Read line by line
 for line in fh:
