@@ -33,11 +33,11 @@ if (params.help) {
   log.info 'Simulate genotypes with different population structure and relatedness'
   log.info ''
   log.info 'Usage: '
-  log.info '    nextflow run simulate-gt.nf [options]'
+  log.info '    nextflow run simulateGT.nf [options]'
   log.info ''
   log.info 'Parameters:'
-  log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: genotypes.vcf.gz)'
-  log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: metadata.tsv)'
+  log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: data/genotypes.vcf.gz)'
+  log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: data/metadata.tsv)'
   log.info ' --n INDIVIDUALS             number of individuals (default: 10,000)'
   log.info ' --v VARIANTS                number of variants (default: 100,000)'
   log.info ' --l VARIANTS/CHUNK          variants per chunk (default: 10,000)'
@@ -120,7 +120,6 @@ process split {
 
 process simulate {
 
-    echo true
     conda '/nfs/users2/rg/dgarrido/.conda/envs/ml'
 
     input:
