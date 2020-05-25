@@ -216,17 +216,14 @@ if (params.pca) {
         sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
         
         # 1) convert to PLINK format if input is VCF
-        plink --vcf $simvcf --const-fid --out dummy --biallelic-only strict --output-chr chrM --keep-allele-order
+        plink --vcf $simvcf --const-fid --out ${params.out} --biallelic-only strict --output-chr chrM --keep-allele-order
         
-        # 2) filter by missingness (maf already filtered)
-        plink --bfile dummy --geno 0.01 --make-bed --output-chr chrM --keep-allele-order --out dummy2
-        
-        # 3) prune with --indep-pairwise
-        plink --bfile dummy2 --indep-pairwise 50 5 0.1 --out dummy2
-        plink --bfile dummy2 --extract dummy2.prune.in --out dummy2.pruned --make-bed
+        # 2) prune with --indep-pairwise
+        plink --bfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out}
+        plink --bfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-bed
         
         # 4) Compute PCA
-        plink --bfile dummy2.pruned --pca --out ${params.out}
+        plink --bfile ${params.out}.pruned --pca --out ${params.out}
         """
     }
 
