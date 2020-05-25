@@ -130,7 +130,7 @@ process generate {
 
    script:
    """
-   generate_ancestors.py -m $meta -A ${params.A} -n ${params.n} -s 0 -M ${params.mode} -p ancestors.pickle
+   generate_ancestors.py -m $meta -A ${params.A} -n ${params.n} -s ${params.seed} -M ${params.mode} -p ancestors.pickle
    """
 }
 
