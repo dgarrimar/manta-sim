@@ -34,6 +34,8 @@ pickle_in.close()
 
 # Format output
 def format_out(line, genotypes, out_fh, outvcf_fh):
+    if outvcf_fh is not None:
+        outvcf_fh.write('\t'.join(line[0:9]) + '\t' + '\t'.join(genotypes) + '\n')
     for i, gt in enumerate(genotypes):
         if (gt == '0|0'):
             genotypes[i] = "0"
@@ -46,8 +48,6 @@ def format_out(line, genotypes, out_fh, outvcf_fh):
     else:
         snp = line[2]
     out_fh.write(snp + ", " + ", ".join(line[3:5]) + ", " + ", ".join(genotypes) + '\n')
-    if outvcf_fh is not None:
-        outvcf_fh.write('\t'.join(line[0:9]) + '\t' + '\t'.join(genotypes) + '\n')
         
 # Open VCF
 if args.genotypes.endswith('.gz'):
