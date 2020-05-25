@@ -1,1 +1,1 @@
-nextflow run simulateGT.nf -profile cluster -bg -with-trace --genotype data/genotypes.EUR.vcf.gz --mode pe --pca > log
+nextflow run simulateGT.nf -profile cluster -bg -with-trace --mode p --pca --out empirical > empirical.log
