@@ -115,17 +115,37 @@ process split {
 
 
 /*
+ *  Generate ancestors
+ */
+
+process generate {
+
+   conda '/nfs/users2/rg/dgarrido/.conda/envs/simreal'
+   
+   input:
+   file(meta) from file(params.metadata)
+   
+   output:
+   file('ancestors.pickle') into pickle_ch
+
+   script:
+   """
+   generate_ancestors.py -m $meta -A ${params.A} -n ${params.n} -s 0 -M ${params.mode} -p ancestors.pickle
+   """
+}
+
+/*
  *  Simulate individuals
  */
 
 process simulate {
 
-    conda '/nfs/users2/rg/dgarrido/.conda/envs/ml'
+    conda '/nfs/users2/rg/dgarrido/.conda/envs/simreal'
 
     input:
     file(vcf) from file(params.genotype)
     file(index) from file("${params.genotype}.tbi")
-    file(meta) from file(params.metadata) 
+    file(pickle) from pickle_ch
     each file(chunk) from chunks_ch
 
     output:
@@ -135,15 +155,15 @@ process simulate {
     script:
     if (params.pca == true)
     """
-    s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
+    s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf 
-    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -s \$s -M ${params.mode} -o ${chunk}.sim -v ${chunk}.sim.vcf
+    simulate.py -g ${chunk}.vcf -A ${params.A} -p $pickle -n ${params.n} -b ${params.b} -s \$s -o ${chunk}.sim -v ${chunk}.sim.vcf
     """
     else
     """
-    s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # new seed is chunk id
+    s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf
-    simulate.py -g ${chunk}.vcf -m $meta -A ${params.A} -n ${params.n} -b ${params.b} -s \$s -M ${params.mode} -o ${chunk}.sim
+    simulate.py -g ${chunk}.vcf -A ${params.A} -p $pickle -n ${params.n} -b ${params.b} -s \$s -o ${chunk}.sim
     """
 }
 
