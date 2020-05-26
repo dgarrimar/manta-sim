@@ -1,1 +1,1 @@
-nextflow run simulateGT.nf -profile cluster -bg -with-trace --genotype data/genotypes.EUR.vcf.gz --mode e --pca --out simUnrelated > simUnrelated.log
+nextflow run simulateGT.nf -profile cluster -bg -with-trace --genotype data/genotypes.EUR.vcf.gz --mode e --A 2 --pca --out simRelated > simRelated.log
