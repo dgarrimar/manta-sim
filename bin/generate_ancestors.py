@@ -48,23 +48,23 @@ if europeans:
         for i in range(n):
             pop = pops[randint(0, len(pops)-1)]
             inds = list(df.loc[df['pop'] == pop, 'sample'])
-            ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
+            ancestors[i] = [inds[randint(0, len(inds)-1)] for j in range(A)]
           
     else:
         inds = list(df.loc[df['super_pop'] == 'EUR', 'sample'])
         for i in range(n):
-            ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
+            ancestors[i] = [inds[randint(0, len(inds)-1)] for j in range(A)]
 else:
     if popstr:
         pops = list(df['pop'].unique())
         for i in range(n):
             pop = pops[randint(0, len(pops)-1)]
             inds = list(df.loc[df['pop'] == pop, 'sample'])
-            ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
+            ancestors[i] = [inds[randint(0, len(inds)-1)] for j in range(A)]
     else:
         inds = list(df['sample'])
         for i in range(n):
-            ancestors[i] = [inds[randint(0, len(inds)-1)] for i in range(A)]
+            ancestors[i] = [inds[randint(0, len(inds)-1)] for j in range(A)]
 
 # Pickled output file
 pickle_out = open(args.pickle,"wb")
