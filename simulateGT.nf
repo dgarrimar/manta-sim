@@ -108,7 +108,7 @@ process split {
 
     script:
     """
-    # bcftools query -f '%CHROM\t%POS\n' $vcf | shuf --random-source <(seed ${params.seed}) -n ${params.v} | sort -V > positions
+//    bcftools query -f '%CHROM\t%POS\n' $vcf | shuf --random-source <(seed ${params.seed}) -n ${params.v} | sort -V > positions
     
     bcftools query -f '%CHROM\t%POS\n' $vcf > positions
     split -d -a 10 -l ${params.l} positions chunk
@@ -197,6 +197,8 @@ process out {
  * Plot PCA
  *
  *  - We assume there are not missing genotypes
+ *  - We assume biallelic variants
+ *  - We assume MAF > 0.05
  *
  */
 
@@ -217,15 +219,16 @@ if (params.pca) {
         ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
         sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
         
-        # 1) convert to PLINK format if input is VCF
-        plink --vcf $simvcf --const-fid --out ${params.out} --biallelic-only strict --output-chr chrM --keep-allele-order
+        # 1) convert to PLINK2 format
+        plink2 --vcf $simvcf --out ${params.out}
         
         # 2) prune with --indep-pairwise
-        plink --bfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out}
-        plink --bfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-bed
+        plink2 --pfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out}
+        plink2 --pfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-pgen
         
         # 4) Compute PCA
-        plink --bfile ${params.out}.pruned --pca --out ${params.out}
+        if [[ ${params.n} -ge 5000 ]]; then approx="approx"; else approx=""; fi
+        plink2 --pfile ${params.out}.pruned --pca \$approx --out ${params.out}
         """
     }
 
