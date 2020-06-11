@@ -11,3 +11,4 @@ bin/.ipynb_checkpoints
 GEMMA
 docker/.docker
 singularity
+run
