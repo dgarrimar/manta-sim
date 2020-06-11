@@ -9,3 +9,5 @@ trace.txt*
 TODO
 bin/.ipynb_checkpoints
 GEMMA
+docker/.docker
+singularity
