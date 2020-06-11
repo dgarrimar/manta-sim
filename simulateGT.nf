@@ -16,7 +16,7 @@ params.n = 10000
 params.A = 10
 params.l = 10000
 params.b = 1000 
-params.v = 100000
+// params.v = 100000
 params.seed = 123
 params.pca = false
 params.mode = 'e' // e, p, ep
@@ -39,7 +39,7 @@ if (params.help) {
   log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: data/genotypes.vcf.gz)'
   log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: data/metadata.tsv)'
   log.info ' --n INDIVIDUALS             number of individuals (default: 10,000)'
-  log.info ' --v VARIANTS                number of variants (default: 100,000)'
+//  log.info ' --v VARIANTS                number of variants (default: 100,000)'
   log.info ' --l VARIANTS/CHUNK          variants per chunk (default: 10,000)'
   log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
   log.info ' --A ANCESTORS               number of ancestors (default: 10)'
@@ -62,7 +62,7 @@ log.info '------------------'
 log.info "Genotype data                : ${params.genotype}"
 log.info "Metadata                     : ${params.metadata}"
 log.info "No. of individuals           : ${params.n}"
-log.info "No. of variants (total)      : ${params.v}"
+// log.info "No. of variants (total)      : ${params.v}"
 log.info "No. of variants per chunk    : ${params.l}"
 log.info "No. of variants per block    : ${params.b}"
 log.info "No. of ancestors             : ${params.A}"
@@ -108,7 +108,9 @@ process split {
 
     script:
     """
-    bcftools query -f '%CHROM\t%POS\n' $vcf | shuf --random-source <(seed ${params.seed}) -n ${params.v} | sort -V > positions
+    # bcftools query -f '%CHROM\t%POS\n' $vcf | shuf --random-source <(seed ${params.seed}) -n ${params.v} | sort -V > positions
+    
+    bcftools query -f '%CHROM\t%POS\n' $vcf > positions
     split -d -a 10 -l ${params.l} positions chunk
     """
 }
