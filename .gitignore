@@ -1,5 +1,5 @@
 clean
-*log
+logs
 test
 data
 .nextflow*
