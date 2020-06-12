@@ -4,6 +4,7 @@ test
 data
 .nextflow*
 result
+simGT
 work
 trace.txt*
 TODO
