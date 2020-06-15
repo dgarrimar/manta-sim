@@ -136,7 +136,7 @@ process simulatePT {
     each alphaH from grid.alphaH
 
     output:    
-    set file('pheno.txt'), file('params.txt') into pheno1_ch, pheno2_ch
+    set val(q), GT, file('pheno.txt'), file('params.txt') into pheno_ch
 
     script:
     def (GTgen, geno, kinship) = GT
@@ -146,4 +146,24 @@ process simulatePT {
     """
 }
 
-pheno1_ch.view()
+pheno_ch.flatten().toList().into{pheno1_ch; pheno2_ch}
+
+
+process GEMMA {
+
+    input:
+    set val(q), val(GTgen), file(geno), file(kinship), file(pheno), file(params) from pheno1_ch
+
+    output:
+    file("sim.txt") into gemma_ch
+
+    script:
+    def pids = (1..3).join(' ')
+    """
+    gemma -lmm -g $geno -k $kinship -p $pheno -n $pids -outdir . -o $GTgen
+    paste $params <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("${GTgen}.assoc.txt", data.table = F); cat(mean(tb[,ncol(tb)] < 0.05))') > sim.txt
+    """
+}
+
+gemma_ch.view()
+
