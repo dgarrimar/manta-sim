@@ -121,13 +121,13 @@ grid.keySet().each {
 
 process simulatePT {
  
-    publishDir "${params.dir}"   
+    echo true
 
     input:
     each n from grid.n
     each q from grid.q
     each PTgen from grid.PTgen
-    each GTgen from grid.GTgen
+    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.sXX.txt")] } 
     each s from grid.s
     each hs2 from grid.hs2
     each hg2 from grid.hg2
@@ -136,16 +136,14 @@ process simulatePT {
     each alphaH from grid.alphaH
 
     output:    
-    set file('params.txt'), file('pheno.txt') into pheno1_ch, pheno2_ch
+    set file('pheno.txt'), file('params.txt') into pheno1_ch, pheno2_ch
 
     script:
+    def (GTgen, geno, kinship) = GT
     """
-    echo -e '$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH' > params.txt
- 
-    simulatePT.R -n $n -q $q --PTgen $PTgen --GTgen $GTgen --GTdir ${params.GTdir} -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
+    echo -e "$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH" > params.txt
+    simulatePT.R -n $n -q $q --PTgen $PTgen --geno $geno --kinship $kinship -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
     """
 }
 
-
 pheno1_ch.view()
-pheno2_ch.view()
