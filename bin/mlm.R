@@ -60,6 +60,7 @@ rs <- rs[1:100]
 ########################
 
 transf <- opt$t
+covariate_file <- opt$covariates
 
 if(transf == "GAMMA"){
   Rg <- opt$kinship
@@ -87,7 +88,7 @@ if(transf == "GAMMA"){
   X <- rotate(X, Sigma)
 } else if (transf == "PCA"){
   k <- 3
-  covariates <- read.table(opt$covariates)[,-1]
+  covariates <- read.table(covariate_file)[,-1]
   covariates <- covariates[, c(1:k)]
 }
 
