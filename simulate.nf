@@ -26,7 +26,6 @@ params.alphaG = 0.5
 params.lambda = 0.5
 params.alphaH = 0.5
 params.t = 'none'
-params.r = false
 
 /*
  *  Print usage and help
@@ -55,7 +54,6 @@ if (params.help) {
   log.info ' --lambda STRUCT NOISE       fraction of structured noise (default: 0.5)'
   log.info ' --alphaH S. NOISE SHARED    fraction of structured noise that is shared across traits (default: 0.5)'
   log.info ' --t TRANSFORM               Transformation of response variables: none, PCA, GAMMA (default: none)'
-  log.info ' --r RUNNING TIME            report running time rather than tie/power (default: false)'
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
@@ -84,7 +82,6 @@ log.info "Fraction of hg2 shared       : ${params.alphaG}"
 log.info "Fraction of st. noise        : ${params.lambda}"
 log.info "Fraction of st. noise shared : ${params.alphaH}"
 log.info "Transformation               : ${params.t}"
-log.info "Running time                 : ${params.r}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
