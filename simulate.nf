@@ -14,7 +14,7 @@ params.out = 'simulation.tsv'
 params.help = false
 
 // Simulation params
-params.n = 1000 // < simulateGT.nf
+params.n = 100 // < simulateGT.nf
 params.q = 3
 params.PTgen = 'matrixNorm'    
 params.GTgen = 'simPopStructure' 
@@ -134,23 +134,29 @@ process simulatePT {
     each alphaH from grid.alphaH
 
     output:    
-    set val(q), GT, file('pheno.txt'), file('params.txt') into pheno_ch
+    set val(q), file("geno.gemma"), file("kinship.txt"), file("pcs.txt"), file('pheno.txt'), file('params.txt') into pheno1_ch, pheno2_ch
 
     script:
     def (GTgen, geno, kinship, eigenvec) = GT
     """
+    # Save simulation parameters
     echo -e "$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH" > params.txt
-    # Generate new GT and Kinship given n if n < n_geno, use it downstream
-    simulatePT.R -n $n -q $q --PTgen $PTgen --geno $geno --kinship $kinship -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
+    
+    # Subset genotype, kinship, eigenvec
+    head -n $n $kinship | cut -f 1-$n > kinship.txt
+    head -n $n $eigenvec > pcs.txt
+    nplus3=\$(( $n + 3 ))
+    cut -d ',' -f 1-\$nplus3 $geno > "geno.gemma"
+    
+    # Simulate phenotypes
+    simulatePT.R -n $n -q $q --PTgen $PTgen --geno geno.gemma --kinship kinship.txt -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
     """
 }
-
-pheno_ch.flatten().toList().into{pheno1_ch; pheno2_ch}
 
 process GEMMA {
 
     input:
-    set val(q), val(GTgen), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno1_ch
+    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno1_ch
     
     output:
     file("gemma.txt") into gemma_ch
@@ -158,16 +164,16 @@ process GEMMA {
     script:
     def pids = (1..3).join(' ')
     """
-    head -n 100 $geno > fastgeno
-    gemma -lmm -g fastgeno -k $kinship -p $pheno -n $pids -outdir . -o $GTgen
-    paste $par <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("${GTgen}.assoc.txt", data.table = F); cat(mean(tb[, ncol(tb)] < ${params.level}))') > gemma.txt
+    head -n 1000 $geno > fastgeno
+    gemma -lmm -g fastgeno -k $kinship -p $pheno -n $pids -outdir . -o gemma
+    paste $par <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("gemma.assoc.txt", data.table = F); cat(mean(tb[, ncol(tb)] < ${params.level}))') > gemma.txt
     """
 }
 
 process MLM {
 
     input:
-    set val(q), val(GTgen), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno2_ch
+    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno2_ch
     each t from grid.t
   
     output:
@@ -176,12 +182,12 @@ process MLM {
     script:
     if (t == 'none')
     """
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm)
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o mlm.assoc.txt)
     paste $par <(echo "MLM") <(echo \$mlm) > mlm.txt     
     """
     else if (t == 'PCA')
     """
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm -c $eigenval)   
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o mlm.assoc.txt -c $eigenval)   
     paste $par <(echo "MLM_PCA") <(echo \$mlm) > mlm.txt
     """
     else if (t == 'GAMMA')
@@ -190,7 +196,7 @@ process MLM {
         gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null 
         grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
     done > VC.txt 
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o ${GTgen}.mlm)
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o mlm.assoc.txt)
     paste $par <(echo "MLM_GAMMA") <(echo \$mlm) > mlm.txt
     """
 }
