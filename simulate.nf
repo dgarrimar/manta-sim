@@ -141,12 +141,12 @@ process simulatePT {
     def (GTgen, geno, kinship, eigenvec) = GT
     """
     echo -e "$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH" > params.txt
+    # Generate new GT and Kinship given n if n < n_geno, use it downstream
     simulatePT.R -n $n -q $q --PTgen $PTgen --geno $geno --kinship $kinship -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
     """
 }
 
 pheno_ch.flatten().toList().into{pheno1_ch; pheno2_ch}
-
 
 process GEMMA {
 
@@ -195,4 +195,3 @@ process MLM {
     paste $par <(echo "MLM_GAMMA") <(echo \$mlm) > mlm.txt
     """
 }
-

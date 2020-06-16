@@ -91,10 +91,7 @@ if (PTgen == "matrixNorm"){
      # Load genotypes
      S <- fread(geno, data.table = FALSE, sep = ",")
      p <- nrow(S) # Total number of variants
-     if(n < ncol(S)){
-       S <- S[, 1:n]
-     }
-     
+          
      # Select causal SNP(s)
      sel <- sample(1:p, size = s)
      ids <- S[sel, 1]
@@ -114,10 +111,6 @@ if (PTgen == "matrixNorm"){
   
    ## Kinship (from standarized genotypes)
    Rg <- as.matrix(fread(kinship, data.table = FALSE, sep = "\t"))
-   
-   if(n < nrow(Rg)){
-     Rg <- Rg[1:n, 1:n]
-   }  
      
    ## 2.1. Shared
     aaT <- tcrossprod(rnorm(q))

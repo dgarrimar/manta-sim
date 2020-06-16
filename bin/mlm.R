@@ -44,12 +44,6 @@ rs <- X[, 1]
 X[, c(1:3)] <- NULL
 X <- t(X)
 
-# When simulating different values of n
-n <- nrow(Y)
-if(n < nrow(X)){
-  X <- X[1:n, ]
-}
-
 # Apply same filter as in GEMMA regarding MAF (default)
 maf <- apply(X, 2, function(x){
   tbl <- table(x)
