@@ -124,8 +124,6 @@ grid.keySet().each {
 
 process simulatePT {
  
-    echo true
-
     input:
     each n from grid.n
     each q from grid.q
@@ -155,18 +153,44 @@ pheno_ch.flatten().toList().into{pheno1_ch; pheno2_ch}
 process GEMMA {
 
     input:
-    set val(q), val(GTgen), file(geno), file(kinship), file(pheno), file(params) from pheno1_ch
+    set val(q), val(GTgen), file(geno), file(kinship), file(pheno), file(par) from pheno1_ch
     
     output:
-    file("sim.txt") into gemma_ch
+    file("gemma.txt") into gemma_ch
 
     script:
     def pids = (1..3).join(' ')
     """
     gemma -lmm -g $geno -k $kinship -p $pheno -n $pids -outdir . -o $GTgen
-    paste $params <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("${GTgen}.assoc.txt", data.table = F); cat(mean(tb[, ncol(tb)] < ${params.level}))') > sim.txt
+    paste $par <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("${GTgen}.assoc.txt", data.table = F); cat(mean(tb[, ncol(tb)] < ${params.level}))') > gemma.txt
     """
 }
 
-gemma_ch.view()
+process MLM {
+
+    input:
+    set val(q), val(GTgen), file(geno), file(kinship), file(pheno), file(par) from pheno2_ch
+    each t from grid.t
+//    each pca from grid.pca
+  
+    output:
+    file("mlm.txt") into mlm_ch
+
+    script:
+//    -c $pca
+    if (t == 'none')
+    """
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm)
+    paste $par <(echo "MLM") <(echo \$mlm) > mlm.txt     
+    """
+    else if (t == 'GAMMA')
+    """
+    for in {1..$q}; do 
+        gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null 
+        grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
+    done > VC.txt 
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o ${GTgen}.mlm)
+    paste $par <(echo "MLM_GAMMA") <(echo \$mlm) > mlm.txt
+    """
+}
 
