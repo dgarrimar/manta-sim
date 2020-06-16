@@ -26,7 +26,6 @@ params.alphaG = 0.5
 params.lambda = 0.5
 params.alphaH = 0.5
 params.t = 'none'
-params.pca = 0
 params.r = false
 
 /*
@@ -55,8 +54,7 @@ if (params.help) {
   log.info ' --alphaG REL SHARED         fraction of signal from the relatedness contribution shared across traits (default: 0.5)'
   log.info ' --lambda STRUCT NOISE       fraction of structured noise (default: 0.5)'
   log.info ' --alphaH S. NOISE SHARED    fraction of structured noise that is shared across traits (default: 0.5)'
-  log.info ' --t TRANSFORM               Transformation of response variables: none, GAMMA (default: none)'
-  log.info ' --pca PC COVARIATES         perform PCA on genotype matrix and use first PCs as covariates (default: 0)' 
+  log.info ' --t TRANSFORM               Transformation of response variables: none, PCA, GAMMA (default: none)'
   log.info ' --r RUNNING TIME            report running time rather than tie/power (default: false)'
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
@@ -85,7 +83,7 @@ log.info "Relatedness heritability     : ${params.hg2}"
 log.info "Fraction of hg2 shared       : ${params.alphaG}"
 log.info "Fraction of st. noise        : ${params.lambda}"
 log.info "Fraction of st. noise shared : ${params.alphaH}"
-log.info "GAMMA transformation         : ${params.t}"
+log.info "Transformation               : ${params.t}"
 log.info "Number of PC as covariates   : ${params.pca}"
 log.info "Running time                 : ${params.r}"
 log.info "Output directory             : ${params.dir}"
@@ -128,7 +126,7 @@ process simulatePT {
     each n from grid.n
     each q from grid.q
     each PTgen from grid.PTgen
-    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.sXX.txt")] } 
+    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.sXX.txt", file("${params.GTdir}/${it}.eigenvec")] } 
     each s from grid.s
     each hs2 from grid.hs2
     each hg2 from grid.hg2
@@ -140,7 +138,7 @@ process simulatePT {
     set val(q), GT, file('pheno.txt'), file('params.txt') into pheno_ch
 
     script:
-    def (GTgen, geno, kinship) = GT
+    def (GTgen, geno, kinship, eigenvec) = GT
     """
     echo -e "$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH" > params.txt
     simulatePT.R -n $n -q $q --PTgen $PTgen --geno $geno --kinship $kinship -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
@@ -153,7 +151,7 @@ pheno_ch.flatten().toList().into{pheno1_ch; pheno2_ch}
 process GEMMA {
 
     input:
-    set val(q), val(GTgen), file(geno), file(kinship), file(pheno), file(par) from pheno1_ch
+    set val(q), val(GTgen), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno1_ch
     
     output:
     file("gemma.txt") into gemma_ch
@@ -161,7 +159,8 @@ process GEMMA {
     script:
     def pids = (1..3).join(' ')
     """
-    gemma -lmm -g $geno -k $kinship -p $pheno -n $pids -outdir . -o $GTgen
+    head -n 100 $geno > fastgeno
+    gemma -lmm -g fastgeno -k $kinship -p $pheno -n $pids -outdir . -o $GTgen
     paste $par <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("${GTgen}.assoc.txt", data.table = F); cat(mean(tb[, ncol(tb)] < ${params.level}))') > gemma.txt
     """
 }
@@ -169,19 +168,22 @@ process GEMMA {
 process MLM {
 
     input:
-    set val(q), val(GTgen), file(geno), file(kinship), file(pheno), file(par) from pheno2_ch
+    set val(q), val(GTgen), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno2_ch
     each t from grid.t
-//    each pca from grid.pca
   
     output:
     file("mlm.txt") into mlm_ch
 
     script:
-//    -c $pca
     if (t == 'none')
     """
     mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm)
     paste $par <(echo "MLM") <(echo \$mlm) > mlm.txt     
+    """
+    else if (t == 'PCA')
+    """
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm -c $eigenval   
+    paste $par <(echo "MLM") <(echo \$mlm) > mlm.txt
     """
     else if (t == 'GAMMA')
     """

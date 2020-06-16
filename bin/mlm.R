@@ -39,9 +39,16 @@ set.seed(123)
 
 Y <- as.matrix(fread(opt$pheno, data.table = F))
 X <- fread(opt$geno, data.table = F, sep = ",")
+
 rs <- X[, 1]
 X[, c(1:3)] <- NULL
 X <- t(X)
+
+# When simulating different values of n
+n <- nrow(Y)
+if(n < nrow(X)){
+  X <- X[1:n, ]
+}
 
 # Apply same filter as in GEMMA regarding MAF (default)
 maf <- apply(X, 2, function(x){
@@ -84,19 +91,22 @@ if(transf == "GAMMA"){
   Sigma <- Vg*Rg + Ve*diag(nrow(Y))
   Y <- rotate(Y, Sigma)		        
   X <- rotate(X, Sigma)
-}
-
-covariates <- opt$covariates
-
-if(!is.null(covariates)){
-  print("Not implemented yet!")
+} else if (transf == "PCA"){
+  k <- 3
+  covariates <- read.table(opt$covariates)[,-1]
+  covariates <- covariates[, c(1:k)]
 }
 
 ## 1. Run mlm
 
  # Run
  res <- c()
- res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+ if (is.null(covariates)){
+   res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+ } else {
+   res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+ }
+ 
  res <- cbind.data.frame(rs, res)
  
  # Print TIE/POWER
