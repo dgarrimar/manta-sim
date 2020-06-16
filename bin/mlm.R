@@ -96,7 +96,7 @@ if(transf == "GAMMA"){
 
  # Run
  res <- c()
- if (is.null(covariates)){
+ if (is.null(covariate_file)){
    res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
  } else {
    res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})

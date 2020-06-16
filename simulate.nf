@@ -181,8 +181,8 @@ process MLM {
     """
     else if (t == 'PCA')
     """
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm -c $eigenval   
-    paste $par <(echo "MLM") <(echo \$mlm) > mlm.txt
+    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o ${GTgen}.mlm -c $eigenval)   
+    paste $par <(echo "MLM_PCA") <(echo \$mlm) > mlm.txt
     """
     else if (t == 'GAMMA')
     """
