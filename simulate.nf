@@ -84,7 +84,6 @@ log.info "Fraction of hg2 shared       : ${params.alphaG}"
 log.info "Fraction of st. noise        : ${params.lambda}"
 log.info "Fraction of st. noise shared : ${params.alphaH}"
 log.info "Transformation               : ${params.t}"
-log.info "Number of PC as covariates   : ${params.pca}"
 log.info "Running time                 : ${params.r}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
@@ -126,7 +125,7 @@ process simulatePT {
     each n from grid.n
     each q from grid.q
     each PTgen from grid.PTgen
-    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.sXX.txt", file("${params.GTdir}/${it}.eigenvec")] } 
+    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.sXX.txt"), file("${params.GTdir}/${it}.eigenvec")] } 
     each s from grid.s
     each hs2 from grid.hs2
     each hg2 from grid.hg2
