@@ -173,7 +173,7 @@ if ( params.pca ){ simvcf_ch.collectFile(name: "${params.out}.vcf", sort: { it.n
 
 process kinship {
 
-    publishDir "${params.dir}"
+    publishDir "${params.dir}", mode: 'copy'
 
     input:
     file(simgeno) from out_ch
@@ -201,7 +201,7 @@ if (params.pca) {
 
     process pca {
 
-        publishDir "${params.dir}"
+        publishDir "${params.dir}", mode: 'copy'
     
         input:
         file(simvcf) from outvcf_ch
