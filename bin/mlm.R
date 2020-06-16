@@ -112,8 +112,6 @@ if(transf == "GAMMA"){
    } 
  }
 
- 
- 
  res <- cbind.data.frame(rs, res)
  
  # Print TIE/POWER
