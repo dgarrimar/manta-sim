@@ -23,6 +23,8 @@ option_list = list(
               help="Transformation: none or GAMMA", metavar="character"),
   make_option(c("-l", "--level"), type="numeric", default=0.05,
               help="Significance level", metavar="numeric"),
+  make_option(c("--manova"), action="store_true", default=F,
+              help="Perform MANOVA instead of MLM"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output (MLM p-values) file name", metavar="character")
   )
@@ -54,8 +56,8 @@ rs <- rs[maf >= 0.01]
 
 ########################
 ########################
-X <- X[, 1:100]
-rs <- rs[1:100]
+X <- X[, 1:1000]
+rs <- rs[1:1000]
 ########################
 ########################
 
@@ -92,15 +94,25 @@ if(transf == "GAMMA"){
   covariates <- covariates[, c(1:k)]
 }
 
-## 1. Run mlm
+## 1. Run mlm/manova
 
  # Run
  res <- c()
- if (is.null(covariate_file)){
-   res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
- } else {
-   res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+ if(opt$manova){
+   if (is.null(covariate_file)){
+     res <- apply(X, 2, function(x){summary(manova(Y ~ x))$stats[1,6]})
+   } else {
+     res <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
+   } 
+ }else{
+   if (is.null(covariate_file)){
+     res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+   } else {
+     res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+   } 
  }
+
+ 
  
  res <- cbind.data.frame(rs, res)
  

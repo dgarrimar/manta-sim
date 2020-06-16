@@ -134,7 +134,7 @@ process simulatePT {
     each alphaH from grid.alphaH
 
     output:    
-    set val(q), file("geno.gemma"), file("kinship.txt"), file("pcs.txt"), file('pheno.txt'), file('params.txt') into pheno1_ch, pheno2_ch
+    set val(q), file("geno.gemma"), file("kinship.txt"), file("pcs.txt"), file('pheno.txt'), file('params.txt') into pheno1_ch, pheno2_ch, pheno3_ch
 
     script:
     def (GTgen, geno, kinship, eigenvec) = GT
@@ -198,5 +198,36 @@ process MLM {
     done > VC.txt 
     mlm=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o mlm.assoc.txt)
     paste $par <(echo "MLM_GAMMA") <(echo \$mlm) > mlm.txt
+    """
+}
+
+process MANOVA {
+
+    input:
+    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno3_ch
+    each t from grid.t
+
+    output:
+    file("manova.txt") into manova_ch
+
+    script:
+    if (t == 'none')
+    """
+    manova=\$(mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt --manova)
+    paste $par <(echo "MANOVA") <(echo \$manova) > manova.txt
+    """
+    else if (t == 'PCA')
+    """
+    manova=\$(mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt -c $eigenval --manova)
+    paste $par <(echo "MANOVA_PCA") <(echo \$manova) > manova.txt
+    """
+    else if (t == 'GAMMA')
+    """
+    for in {1..$q}; do
+        gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
+        grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
+    done > VC.txt
+    manova=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o manova.assoc.txt --manova)
+    paste $par <(echo "MANOVA_GAMMA") <(echo \$manova) > manova.txt
     """
 }
