@@ -248,7 +248,7 @@ process MANOVA {
     """
 }
 
-gemma_ch.mix(mlm_ch, manova_ch).collectFile(name: "${params.out}", sort: true).set{pub_ch}
+gemma_ch.mix(mlm_ch, manova_ch).collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
 
 process end {
 
