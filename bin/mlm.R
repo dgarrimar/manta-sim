@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-## Run mlm (with and w/o GAMMA transformation) in simulated datasets
+## Run mlm or manova (with and w/o GAMMA transformation) in simulated datasets
 
 ##  0. Load libraries, parse arguments
 
@@ -52,20 +52,13 @@ maf <- apply(X, 2, function(x){
 X <- X[, maf >= 0.01]
 rs <- rs[maf >= 0.01]
 
-########################
-########################
-X <- X[, 1:1000]
-rs <- rs[1:1000]
-########################
-########################
-
 transf <- opt$t
 covariate_file <- opt$covariates
 
 if(transf == "GAMMA"){
-  Rg <- opt$kinship
+  Rg <- fread(opt$kinship, data.table = F)
   vc <- colMeans(read.table(opt$vc))
- 
+
   # GAMMA functions
   eigen_solve <- function(K, tol = 1e-12) {
     a <- eigen(K)$vectors
@@ -88,7 +81,7 @@ if(transf == "GAMMA"){
   X <- rotate(X, Sigma)
 } else if (transf == "PCA"){
   k <- 3
-  covariates <- read.table(covariate_file)[,-1]
+  covariates <- read.table(covariate_file)[, -1]
   covariates <- covariates[, c(1:k)]
 }
 
