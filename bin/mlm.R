@@ -107,5 +107,5 @@ if(transf == "GAMMA"){
  colnames(res) <- c("rs", "p_value")
  
  # Save
- write.table(res, file = opt$output, col.names = T, row.names = F, sep = "\t")
+ write.table(res, file = opt$output, col.names = T, row.names = F, quote = F, sep = "\t")
 
