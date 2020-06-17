@@ -8,13 +8,13 @@
  */
 
 // General params
-params.GTdir = "$baseDir/simGT"
+params.GTdir = "GT"
 params.dir = 'result'
 params.out = 'simulation.tsv'
 params.help = false
 
 // Simulation params
-params.n = 100 // < simulateGT.nf
+params.n = 100 
 params.q = 3
 params.p = 1000
 params.r = 1
@@ -131,7 +131,7 @@ process simulatePT {
     each n from grid.n
     each q from grid.q
     each PTgen from grid.PTgen
-    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.sXX.txt"), file("${params.GTdir}/${it}.eigenvec")] } 
+    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.vcf")] } 
     each s from grid.s
     each hs2 from grid.hs2
     each hg2 from grid.hg2
@@ -141,25 +141,34 @@ process simulatePT {
     each r from Channel.from(1..params.r)
 
     output:    
-    set val(q), file("geno.gemma"), file("kinship.txt"), file("pcs.txt"), file('pheno.txt'), file('ids.txt'), file('params.txt') into pheno1_ch, pheno2_ch, pheno3_ch
+    set val(q), file("geno.n${n}.p${params.p}.gemma"), file("kinship.sXX.txt"), file("pca.eigenvec"), file('pheno.txt'), file('ids.txt'), file('params.txt') into pheno1_ch, pheno2_ch, pheno3_ch
 
     script:
-    def (GTgen, geno, kinship, eigenvec) = GT
+    def (GTgen, gemma, vcf) = GT
     """
     # Save simulation parameters
     echo -e "$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH\t$r" > params.txt
     
-    # Subset genotype, kinship, eigenvec
-    head -n $n $kinship | cut -f 1-$n > kinship.txt
-    head -n \$(( $n + 1 )) $eigenvec > pcs.txt
-    if [[ ${params.p} -lt \$(wc -l $geno | cut -d' ' -f 1) ]]; then
-        head -n ${params.p} $geno | cut -d ',' -f 1-\$(( $n + 3 )) > "geno.gemma"
-    else
-        cut -d ',' -f 1-\$(( $n + 3 )) $geno > "geno.gemma"
-    fi 
+    # Subset genotype by n
+    cut -d ',' -f 1-\$(( $n + 3 )) $gemma > geno.n${n}.gemma
+    
+    # Compute kinship using all variants
+    Rscript -e 'write.table(file = "dummypheno", rnorm($n), col.names = F, row.names = F)'
+    gemma -gk 2 -g geno.n${n}.gemma -p dummypheno -outdir . -o kinship
 
+    # Compute PCs using all variants 
+    for i in {1..$n}; do echo -ne "S\$i\n" ; done > keep.txt  # subset n individuals
+    plink2 --vcf $vcf --out ${GTgen}
+    plink2 --pfile ${GTgen} --indep-pairwise 50 5 0.1 --keep keep.txt --out ${GTgen}
+    plink2 --pfile ${GTgen} --extract ${GTgen}.prune.in --keep keep.txt --out ${GTgen}.pruned --make-pgen  
+    if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
+    plink2 --pfile ${GTgen}.pruned --pca \$approx --out pca
+
+    # Subset genotype by p
+    head -n ${params.p} geno.n${n}.gemma > geno.n${n}.p${params.p}.gemma
+    
     # Simulate phenotypes
-    simulatePT.R -r $r -n $n -q $q --PTgen $PTgen --geno geno.gemma --kinship kinship.txt -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt -i ids.txt
+    simulatePT.R -r $r -n $n -q $q --PTgen $PTgen --geno geno.n${n}.p${params.p}.gemma --kinship kinship.sXX.txt -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt -i ids.txt
     """
 }
 
@@ -248,7 +257,7 @@ process MANOVA {
     """
 }
 
-gemma_ch.mix(mlm_ch, manova_ch).collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
+gemma_ch.concat(mlm_ch, manova_ch).collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
 
 process end {
 
@@ -262,7 +271,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ts\ths2\thg2\talphaG\tlambda\talphaH\tr\\n/" $sim
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ts\ths2\thg2\talphaG\tlambda\talphaH\tr\tmethod\ttie\\n/" $sim
    """
 }
 
