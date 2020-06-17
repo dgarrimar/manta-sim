@@ -165,26 +165,25 @@ process simulate {
 
 
 /*
- *  Reduce and generate output(s), calculate kinship
+ *  Reduce and generate output
  */
 
 sim_ch.collectFile(name: "${params.out}.gemma", sort: { it.name }).set{out_ch}
 if ( params.pca ){ simvcf_ch.collectFile(name: "${params.out}.vcf", sort: { it.name }).set{outvcf_ch} }
 
-process kinship {
+process out {
 
     publishDir "${params.dir}", mode: 'copy'
 
     input:
-    file(simgeno) from out_ch
+    file(sim) from out_ch
  
     output:
-    set file(simgeno), file("${params.out}.sXX.txt") into pub_ch
-
+    file(sim) into pub_ch
+ 
     script: 
     """
-    Rscript -e 'write.table(file = "dummypheno", rnorm(${params.n}), col.names = F, row.names = F)'
-    gemma -gk 2 -g $simgeno -p dummypheno -outdir . -o ${params.out}
+    echo "Done!"
     """
 }
 
