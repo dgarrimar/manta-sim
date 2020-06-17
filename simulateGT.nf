@@ -206,7 +206,7 @@ if (params.pca) {
         file(simvcf) from outvcf_ch
     
         output:
-        file("${params.out}.eigen*") into pca_ch
+        set file(simvcf), file("${params.out}.eigen*") into pca_ch
 
         script:
         """
