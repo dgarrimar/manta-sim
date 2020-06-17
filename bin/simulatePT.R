@@ -9,6 +9,8 @@ library(MASS)
 library(data.table)
 
 option_list = list(
+  make_option(c("-r","--rpt"), type="numeric", default=0,
+	      help="repeat id (seed) [default %default]", metavar="numeric"),
   make_option(c("-n","--nb_samples"), type="numeric", default=1000,
               help="Total number of samples [default %default]", metavar="numeric"),
   make_option(c("-q", "--nb_responses"), type="numeric", default=3,
@@ -45,7 +47,7 @@ if (is.null(opt$output) || is.null (opt$geno) || is.null (opt$kinship) || is.nul
   stop("Required I/O files must be supplied\n", call.=FALSE)
 }
 
-set.seed(123)
+set.seed(opt$rpt)
 
 n <- opt$nb_samples
 q <- opt$nb_responses                
