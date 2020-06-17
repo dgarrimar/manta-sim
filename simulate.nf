@@ -247,3 +247,22 @@ process MANOVA {
     paste $par <(echo "MANOVA_GAMMA") tieORpower.txt > manova.txt
     """
 }
+
+gemma_ch.mix(mlm_ch, manova_ch).collectFile(name: "${params.out}", sort: true).set{pub_ch}
+
+process end {
+
+   publishDir "${params.dir}"
+
+   input:
+   file(sim) from pub_ch
+
+   output:
+   file(sim) into end_ch
+
+   script:
+   """
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ts\ths2\thg2\talphaG\tlambda\talphaH\tr\\n/" $sim
+   """
+}
+
