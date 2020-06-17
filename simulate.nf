@@ -131,7 +131,7 @@ process simulatePT {
     each alphaH from grid.alphaH
 
     output:    
-    set val(q), file("geno.gemma"), file("kinship.txt"), file("pcs.txt"), file('pheno.txt'), file('params.txt') into pheno1_ch, pheno2_ch, pheno3_ch
+    set val(q), file("geno.gemma"), file("kinship.txt"), file("pcs.txt"), file('pheno.txt'), file('ids.txt'), file('params.txt') into pheno1_ch, pheno2_ch, pheno3_ch
 
     script:
     def (GTgen, geno, kinship, eigenvec) = GT
@@ -146,14 +146,14 @@ process simulatePT {
     cut -d ',' -f 1-\$nplus3 $geno > "geno.gemma"
     
     # Simulate phenotypes
-    simulatePT.R -n $n -q $q --PTgen $PTgen --geno geno.gemma --kinship kinship.txt -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt
+    simulatePT.R -n $n -q $q --PTgen $PTgen --geno geno.gemma --kinship kinship.txt -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt -i ids.txt
     """
 }
 
 process GEMMA {
 
     input:
-    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno1_ch
+    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(ids), file(par) from pheno1_ch
     
     output:
     file("gemma.txt") into gemma_ch
@@ -163,14 +163,15 @@ process GEMMA {
     """
     head -n 1000 $geno > fastgeno
     gemma -lmm -g fastgeno -k $kinship -p $pheno -n $pids -outdir . -o gemma
-    paste $par <(echo "GEMMA") <(Rscript -e 'tb <- data.table::fread("gemma.assoc.txt", data.table = F); cat(mean(tb[, ncol(tb)] < ${params.level}))') > gemma.txt
+    tie.R -t gemma.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt 
+    paste $par <(echo "GEMMA") tieORpower.txt > gemma.txt
     """
 }
 
 process MLM {
 
     input:
-    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno2_ch
+    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(ids), file(par) from pheno2_ch
     each t from grid.t
   
     output:
@@ -179,13 +180,15 @@ process MLM {
     script:
     if (t == 'none')
     """
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o mlm.assoc.txt)
-    paste $par <(echo "MLM") <(echo \$mlm) > mlm.txt     
+    mlm.R -p $pheno -g $geno -t $t -o mlm.assoc.txt
+    tie.R -t mlm.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt 
+    paste $par <(echo "MLM") tieORpower.txt > mlm.txt     
     """
     else if (t == 'PCA')
     """
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -o mlm.assoc.txt -c $eigenval)   
-    paste $par <(echo "MLM_PCA") <(echo \$mlm) > mlm.txt
+    mlm.R -p $pheno -g $geno -t $t -c $eigenval -o mlm.assoc.txt   
+    tie.R -t mlm.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt
+    paste $par <(echo "MLM_PCA") tieORpower.txt > mlm.txt
     """
     else if (t == 'GAMMA')
     """
@@ -193,15 +196,16 @@ process MLM {
         gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null 
         grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
     done > VC.txt 
-    mlm=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o mlm.assoc.txt)
-    paste $par <(echo "MLM_GAMMA") <(echo \$mlm) > mlm.txt
+    mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o mlm.assoc.txt
+    tie.R -t mlm.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt
+    paste $par <(echo "MLM_GAMMA") tieORpower.txt > mlm.txt
     """
 }
 
 process MANOVA {
 
     input:
-    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(par) from pheno3_ch
+    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(ids), file(par) from pheno3_ch
     each t from grid.t
 
     output:
@@ -210,13 +214,15 @@ process MANOVA {
     script:
     if (t == 'none')
     """
-    manova=\$(mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt --manova)
-    paste $par <(echo "MANOVA") <(echo \$manova) > manova.txt
+    mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt --manova
+    tie.R -t manova.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt
+    paste $par <(echo "MANOVA") tieORpower.txt > manova.txt
     """
     else if (t == 'PCA')
     """
-    manova=\$(mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt -c $eigenval --manova)
-    paste $par <(echo "MANOVA_PCA") <(echo \$manova) > manova.txt
+    mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt -c $eigenval --manova
+    tie.R -t manova.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt
+    paste $par <(echo "MANOVA_PCA") tieORpower.txt > manova.txt
     """
     else if (t == 'GAMMA')
     """
@@ -224,7 +230,8 @@ process MANOVA {
         gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
         grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
     done > VC.txt
-    manova=\$(mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o manova.assoc.txt --manova)
-    paste $par <(echo "MANOVA_GAMMA") <(echo \$manova) > manova.txt
+    mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o manova.assoc.txt --manova
+    tie.R -t manova.assoc.txt -l ${params.level} -i $ids -o tieORpower.txt 
+    paste $par <(echo "MANOVA_GAMMA") tieORpower.txt > manova.txt
     """
 }

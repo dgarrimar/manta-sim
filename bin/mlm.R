@@ -20,11 +20,9 @@ option_list = list(
   make_option(c("-c", "--covariates"), type="character", default=NULL,
               help="Covariates (genotype PCs computed by plink2)", metavar="character"),
   make_option(c("-t", "--transformation"), type="character", default="none",
-              help="Transformation: none or GAMMA", metavar="character"),
-  make_option(c("-l", "--level"), type="numeric", default=0.05,
-              help="Significance level", metavar="numeric"),
+              help="Transformation: none or GAMMA [default %default]", metavar="character"),
   make_option(c("--manova"), action="store_true", default=F,
-              help="Perform MANOVA instead of MLM"),
+              help="Perform MANOVA instead of MLM [default %default]"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output (MLM p-values) file name", metavar="character")
   )
@@ -113,10 +111,8 @@ if(transf == "GAMMA"){
  }
 
  res <- cbind.data.frame(rs, res)
- 
- # Print TIE/POWER
- cat(mean(res[,2] < opt$level )) 
+ colnames(res) <- c("rs", "p_value")
  
  # Save
- write.table(res, file = opt$output, col.names = F, row.names = F, sep = "\t")
+ write.table(res, file = opt$output, col.names = T, row.names = F, sep = "\t")
 

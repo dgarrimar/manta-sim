@@ -16,7 +16,7 @@ option_list = list(
   make_option(c("-s", "--nb_causal"), type="numeric", default=0,
               help="Number of causal variants [default %default]", metavar="numeric"),
   make_option(c("--PTgen"), type="character", default="matrixNorm",
-              help="Phenotype data generation: matrixNormal or copula", metavar="character"),
+              help="Phenotype data generation: matrixNormal or copula [default %default]", metavar="character"),
   make_option(c("--geno"), type="character", default=NULL,
               help="genotype data obtained by simulateGT.nf", metavar="character"),
   make_option(c("--kinship"), type="character", default=NULL,
@@ -32,13 +32,15 @@ option_list = list(
   make_option(c("--alphaH"), type="numeric", default=0.3,
               help="Fraction of structured noise that is shared across traits [default %default]", metavar="numeric"),
   make_option(c("-o", "--output"), type="character", default=NULL,
-              help="Output (simulated phenotype) file name", metavar="character")
+              help="Output (simulated phenotype) file name", metavar="character"),
+  make_option(c("-i", "--id_file"), type="character", default=NULL,
+              help="IDs of variants generated under H1, if any", metavar="character")
 )
 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
 
-if (is.null(opt$output) || is.null (opt$geno) || is.null (opt$kinship) ){
+if (is.null(opt$output) || is.null (opt$geno) || is.null (opt$kinship) || is.null(opt$id_file)){
   print_help(opt_parser)
   stop("Required I/O files must be supplied\n", call.=FALSE)
 }
@@ -52,7 +54,10 @@ PTgen <- opt$PTgen
 geno <- opt$geno
 kinship <- opt$kinship
 hs2 <- opt$hs2
-if(s == 0) {hs2 <- 0}
+id_file <- opt$id_file
+if(s == 0) {
+  hs2 <- 0
+} 
 hg2 <- opt$hg2
 alphaG <- opt$alphaG
 lambda <- opt$lambda
@@ -95,6 +100,8 @@ if (PTgen == "matrixNorm"){
      # Select causal SNP(s)
      sel <- sample(1:p, size = s)
      ids <- S[sel, 1]
+     write.table(ids, file = id_file, col.names = F, row.names = F, quote = F)
+
      X <- scale(t(S[sel, -c(1:3), drop = F])) # Standarized genotypes
      
      # Generate effects
@@ -105,6 +112,7 @@ if (PTgen == "matrixNorm"){
      XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) 
    } else {
      XB <- matrix(0, n, q)
+     ignore <- file.create(id_file)
    }
   
   ## 2. Relatedness signal 
