@@ -8,7 +8,7 @@
  */
 
 // General params
-params.GTdir = "GT"
+params.GTdir = "GT/1k_chr22"
 params.dir = 'result'
 params.out = 'simulation.tsv'
 params.help = false
@@ -19,7 +19,7 @@ params.q = 3
 params.p = 1000
 params.r = 1
 params.PTgen = 'matrixNorm'    
-params.GTgen = 'simPopStructure' 
+params.GTgen = 'simPopStructure_chr22' 
 params.level = 0.05
 params.m = 'none'
 params.s = 0
@@ -101,7 +101,7 @@ log.info ''
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['n','q','PTgen','GTgen','s','hs2','hg2','alphaG','lambda','alphaH','t','pca']){
+  if(it in ['n','q','PTgen','GTgen','s','hs2','hg2','alphaG','lambda','alphaH','t','m']){
     grid[it] = params[it]
   }
 }
@@ -122,16 +122,16 @@ grid.keySet().each {
 }
 
 /*
- *  Simulate phenotype
+ *  Expand parameter grid
  */
 
-process simulatePT {
- 
+process expand_grid {
+
     input:
     each n from grid.n
     each q from grid.q
     each PTgen from grid.PTgen
-    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma"), file("${params.GTdir}/${it}.vcf")] } 
+    each GTgen from grid.GTgen
     each s from grid.s
     each hs2 from grid.hs2
     each hg2 from grid.hg2
@@ -140,124 +140,220 @@ process simulatePT {
     each alphaH from grid.alphaH
     each r from Channel.from(1..params.r)
 
-    output:    
-    set val(q), file("geno.n${n}.p${params.p}.gemma"), file("kinship.sXX.txt"), file("pca.eigenvec"), file('pheno.txt'), file('ids.txt'), file('params.txt') into pheno1_ch, pheno2_ch, pheno3_ch
+    output:
+    tuple id,n,q,PTgen,GTgen,s,hs2,hg2,alphaG,lambda,alphaH,r into grid_ch
 
     script:
-    def (GTgen, gemma, vcf) = GT
+    id = "$GTgen|n=$n"
     """
-    # Save simulation parameters
-    echo -e "$n\t$q\t$PTgen\t$GTgen\t$s\t$hs2\t$hg2\t$alphaG\t$lambda\t$alphaH\t$r" > params.txt
-    
-    # Subset genotype by n
-    cut -d ',' -f 1-\$(( $n + 3 )) $gemma > geno.n${n}.gemma
-    
-    # Compute kinship using all variants
-    Rscript -e 'write.table(file = "dummypheno", rnorm($n), col.names = F, row.names = F)'
-    gemma -gk 2 -g geno.n${n}.gemma -p dummypheno -outdir . -o kinship
-
-    # Compute PCs using all variants 
-    for i in {1..$n}; do echo -ne "S\$i\n" ; done > keep.txt  # subset n individuals
-    plink2 --vcf $vcf --out ${GTgen}
-    plink2 --pfile ${GTgen} --indep-pairwise 50 5 0.1 --keep keep.txt --out ${GTgen}
-    plink2 --pfile ${GTgen} --extract ${GTgen}.prune.in --keep keep.txt --out ${GTgen}.pruned --make-pgen  
-    if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
-    plink2 --pfile ${GTgen}.pruned --pca \$approx --out pca
-
-    # Subset genotype by p
-    head -n ${params.p} geno.n${n}.gemma > geno.n${n}.p${params.p}.gemma
-    
-    # Simulate phenotypes
-    simulatePT.R -r $r -n $n -q $q --PTgen $PTgen --geno geno.n${n}.p${params.p}.gemma --kinship kinship.sXX.txt -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt -i ids.txt
     """
 }
 
-process GEMMA {
+/*
+ *  Compute kinship
+ */
+
+process kinship {
+
+    tag { id }
 
     input:
-    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(ids), file(par) from pheno1_ch
+    each n from grid.n
+    each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.gemma")] }
     
     output:
-    file("gemma.txt") into gemma_ch
+    tuple val(id), file("${GT[0]}.n${n}.p${params.p}.gemma"), file("${GT[0]}.sXX.txt") into kinship_ch
 
     script:
-    def pids = (1..3).join(' ')
+    (GTgen, gemma) = GT
+    id = "$GTgen|n=$n"
+    """
+    # Subset genotype by n
+    cut -d ',' -f 1-\$(( $n + 3 )) $gemma > ${GTgen}.n${n}.gemma
+
+    # Compute kinship using all variants
+    Rscript -e 'write.table(file = "dummypheno", rnorm($n), col.names = F, row.names = F)'
+    gemma -gk 2 -g ${GTgen}.n${n}.gemma -p dummypheno -outdir . -o $GTgen
+    
+    # Subset genotype by p
+    head -n ${params.p} ${GTgen}.n${n}.gemma > ${GTgen}.n${n}.p${params.p}.gemma
+    """
+}
+
+grid_ch.combine(kinship_ch, by: 0).set{gt2pt_ch}
+
+/*
+ *  Simulate phenotype
+ */ 
+
+process simulatePT {
+
+    tag { par }
+
+    input:
+    tuple id,n,q,PTgen,GTgen,s,hs2,hg2,alphaG,lambda,alphaH,r,file(geno),file(kinship) from gt2pt_ch
+
+    output:
+    tuple id, par, file(geno), file(kinship), file('pheno.txt'), file('ids.txt') into pheno_ch
+
+    script:
+    par = "$n|$q|$PTgen|$GTgen|$s|$hs2|$hg2|$alphaG|$lambda|$alphaH|$r"
+    """ 
+    simulatePT.R -r $r -n $n -q $q --PTgen $PTgen --geno $geno --kinship $kinship -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt -i ids.txt
+    """
+}
+
+if("PCA" in grid.t) {
+
+ /*
+  *  Genotype PCA
+  */
+    
+    process pca {
+ 
+        tag { id }    
+ 
+        input:
+        each n from grid.n
+        each GT from Channel.from(grid.GTgen).map { ["${it}", file("${params.GTdir}/${it}.vcf")] }
+
+        output:
+        tuple id, file("${GT[0]}.eigenvec") into pca_ch
+
+        script:
+        (GTgen, vcf) = GT
+        id = "$GTgen|n=$n"
+        """
+        # Compute PCs using all variants
+        for i in {1..$n}; do echo -ne "S\$i\n" ; done > keep.txt  # subset n individuals
+        plink2 --vcf $vcf --out ${GTgen}
+        plink2 --pfile ${GTgen} --indep-pairwise 50 5 0.1 --keep keep.txt --out ${GTgen}
+        plink2 --pfile ${GTgen} --extract ${GTgen}.prune.in --keep keep.txt --out ${GTgen}.pruned --make-pgen
+        if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
+        plink2 --pfile ${GTgen}.pruned --pca \$approx --out ${GTgen} 
+        """
+    }
+
+    pheno_ch.combine(pca_ch, by: 0).into{input_gemma_ch;input_mlm_ch;input_manova_ch}
+
+} else {
+   
+    pheno_ch.spread(Channel.of("dummy")).into{input_gemma_ch;input_mlm_ch;input_manova_ch}
+
+} 
+
+
+/*
+ * Run GEMMA, MLM and MANOVA
+ */
+
+process GEMMA {
+  
+    tag { par }
+
+    input:
+    tuple dummy, par, file(geno), file(kinship), file(pheno), file(ids), file(eigenval) from input_gemma_ch
+
+    output:
+    tuple par_ext, file(ids), file("gemma.assoc.txt") into gemma_ch
+
+    script:
+    q = par.split("\\|")[1].toInteger() // # 0-indexed
+    pids = (1..q).join(' ')
+    par_ext = par + "|GEMMA" 
     """
     gemma -lmm -g $geno -k $kinship -p $pheno -n $pids -outdir . -o gemma
-    tie.R -t gemma.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt 
-    paste $par <(echo "GEMMA") tieORpower.txt > gemma.txt
     """
 }
 
 process MLM {
 
     input:
-    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(ids), file(par) from pheno2_ch
+    tuple dummy, par, file(geno), file(kinship), file(pheno), file(ids), file(eigenval) from input_mlm_ch
     each t from grid.t
-  
+
     output:
-    file("mlm.txt") into mlm_ch
+    tuple par_ext, file(ids), file("mlm.assoc.txt") into mlm_ch
 
     script:
-    if (t == 'none')
+    if (t == 'none'){
+    par_ext = par + "|MLM"
     """
     mlm.R -p $pheno -g $geno -t $t -o mlm.assoc.txt
-    tie.R -t mlm.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt 
-    paste $par <(echo "MLM") tieORpower.txt > mlm.txt     
     """
-    else if (t == 'PCA')
+    }else if (t == 'PCA'){
+    par_ext = par + "|MLM_PCA"
     """
-    mlm.R -p $pheno -g $geno -t $t -c $eigenval -o mlm.assoc.txt   
-    tie.R -t mlm.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt
-    paste $par <(echo "MLM_PCA") tieORpower.txt > mlm.txt
+    mlm.R -p $pheno -g $geno -t $t -c $eigenval -o mlm.assoc.txt
     """
-    else if (t == 'GAMMA')
+    }else if (t == 'GAMMA'){
+    par_ext = par + "|MLM_GAMMA"
     """
-    for i in {1..$q}; do 
-        gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null 
+    for i in {1..$q}; do
+        gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
         grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
-    done > VC.txt 
+    done > VC.txt
     mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o mlm.assoc.txt
-    tie.R -t mlm.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt
-    paste $par <(echo "MLM_GAMMA") tieORpower.txt > mlm.txt
     """
+    }
 }
 
-process MANOVA {
+process MANOVA { // identical to MLM with --manova
 
     input:
-    set val(q), file(geno), file(kinship), file(eigenval), file(pheno), file(ids), file(par) from pheno3_ch
+    tuple dummy, par, file(geno), file(kinship), file(pheno), file(ids), file(eigenval) from input_manova_ch
     each t from grid.t
 
     output:
-    file("manova.txt") into manova_ch
+    tuple par_ext, file(ids), file("manova.assoc.txt") into manova_ch
 
     script:
-    if (t == 'none')
+    if (t == 'none'){
+    par_ext = par + "|MANOVA"
     """
     mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt --manova
-    tie.R -t manova.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt
-    paste $par <(echo "MANOVA") tieORpower.txt > manova.txt
     """
-    else if (t == 'PCA')
+    } else if (t == 'PCA') {
+    par_ext = par + "|MANOVA_PCA"
     """
     mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt -c $eigenval --manova
-    tie.R -t manova.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt
-    paste $par <(echo "MANOVA_PCA") tieORpower.txt > manova.txt
     """
-    else if (t == 'GAMMA')
+    } else if (t == 'GAMMA') {
+    par_ext = par + "|MANOVA_GAMMA"
     """
     for i in {1..$q}; do
         gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
         grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
     done > VC.txt
     mlm.R -p $pheno -g $geno -t $t -k $kinship -v VC.txt -o manova.assoc.txt --manova
-    tie.R -t manova.assoc.txt -l ${params.level} -i $ids -m ${params.m} -o tieORpower.txt 
-    paste $par <(echo "MANOVA_GAMMA") tieORpower.txt > manova.txt
+    """
+    }
+}
+
+gemma_ch.concat(mlm_ch, manova_ch).set{tie_power_ch}
+
+/*
+ *  Compute TIE or power
+ */
+
+process tie_power {
+    
+    input:
+    each m from grid.m
+    tuple par, file(ids), file(assoc) from tie_power_ch
+ 
+    output:
+    file("res.txt") into out_ch  
+
+    script:
+    """
+    tie.R -t $assoc -l ${params.level} -i $ids -m $m -o tieORpower.txt
+    paste <(echo -e "$par|$m" | sed 's/|/\t/g') tieORpower.txt > res.txt
     """
 }
 
-gemma_ch.concat(mlm_ch, manova_ch).collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
+
+out_ch.collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
 
 process end {
 
@@ -271,7 +367,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ts\ths2\thg2\talphaG\tlambda\talphaH\tr\tmethod\ttie\\n/" $sim
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ts\ths2\thg2\talphaG\tlambda\talphaH\tr\tmethod\tmtc\ttie\\n/" $sim
    """
 }
 
