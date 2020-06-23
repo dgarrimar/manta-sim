@@ -80,7 +80,7 @@ if(transf == "GAMMA"){
   Y <- rotate(Y, Sigma)		        
   X <- rotate(X, Sigma)
 } else if (transf == "PCA"){
-  k <- 3
+  k <- 10
   covariates <- read.table(covariate_file)[, -1]
   covariates <- covariates[, c(1:k)]
 }
@@ -91,15 +91,35 @@ if(transf == "GAMMA"){
  res <- c()
  if(opt$manova){
    if (is.null(covariate_file)){
-     res <- apply(X, 2, function(x){summary(manova(Y ~ x))$stats[1,6]})
+#     res <- apply(X, 2, function(x){summary(manova(Y ~ x))$stats[1,6]})
+      res <- c()
+      for (snp in 1:ncol(X)) {
+          print(snp)
+          res[snp] <- summary(manova(Y ~ X[,snp]))$stats[1,6]
+      }
    } else {
-     res <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
+#     res <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
+      res <- c()
+      for (snp in 1:ncol(X)) {
+          print(snp)
+          res[snp] <- summary(manova(Y ~ ., data = data.frame(X[,snp], covariates)))$stats[1,6]
+      }
    } 
  }else{
    if (is.null(covariate_file)){
-     res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+#     res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+      res <- c()
+      for (snp in 1:ncol(X)) {
+          print(snp)
+          res[snp] <- mlm(Y ~ X[,snp])$aov.tab[1,6]
+      }
    } else {
-     res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+#     res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+      res <- c()
+      for (snp in 1:ncol(X)) {
+          print(snp)
+          res[snp] <- mlm(Y ~ ., data = data.frame(X[,snp], covariates))$aov.tab[1,6]
+      }
    } 
  }
 
