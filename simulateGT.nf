@@ -73,7 +73,6 @@ log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
 log.info ''
 
-
 /*
  * Checks 
  */
@@ -91,7 +90,6 @@ if (!params.genotype) {
 if( params.l % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.l, params.b)
 } 
-
 
 /* 
  *  Split
@@ -117,9 +115,7 @@ process split {
     bcftools query --regions ${params.chr} -f '%CHROM\t%POS\n' $vcf > positions
     split -d -a 10 -l ${params.l} positions chunk
     """
-    
 }
-
 
 /*
  *  Generate ancestors
@@ -152,50 +148,22 @@ process simulate {
     each file(chunk) from chunks_ch
 
     output:
-    file ("${chunk}.sim") into sim_ch
-    file ("${chunk}.sim.vcf") optional true into simvcf_ch
+    file ("${chunk}.sim.vcf") optional true into sim_ch
 
     script:
-    if (params.pca == true)
-    """
-    s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # seed is chunk id
-    bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf 
-    simulate.py -g ${chunk}.vcf -A ${params.A} -p $pickle -n ${params.n} -b ${params.b} -s \$s -o ${chunk}.sim -v ${chunk}.sim.vcf
-    """
-    else
     """
     s=\$(echo $chunk | sed -r 's,chunk0*(.+),\\1,')  # seed is chunk id
     bcftools view -R $chunk -T $chunk -Ob $vcf | bcftools norm -d all -Ov -o ${chunk}.vcf
-    simulate.py -g ${chunk}.vcf -A ${params.A} -p $pickle -n ${params.n} -b ${params.b} -s \$s -o ${chunk}.sim
+    simulate.py -g ${chunk}.vcf -A ${params.A} -p $pickle -n ${params.n} -b ${params.b} -s \$s -o ${chunk}.sim.vcf
     """
 }
 
+sim_ch.collectFile(name: "${params.out}.vcf", sort: { it.name }).set{out_ch}
 
 /*
  *  Reduce and generate output
- */
-
-sim_ch.collectFile(name: "${params.out}.gemma", sort: { it.name }).set{out_ch}
-if ( params.pca ){ simvcf_ch.collectFile(name: "${params.out}.vcf", sort: { it.name }).set{outvcf_ch} }
-
-process out {
-
-    publishDir "${params.dir}", mode: 'copy'
-
-    input:
-    file(sim) from out_ch
- 
-    output:
-    file(sim) into pub_ch
- 
-    script: 
-    """
-    echo "Done!"
-    """
-}
-
-/*
- * Plot PCA
+ *  
+ *  Plot PCA
  *
  *  - We assume there are not missing genotypes
  *  - We assume biallelic variants
@@ -203,34 +171,39 @@ process out {
  *
  */
 
-if (params.pca) {
+process out {
 
-    process pca {
-
-        publishDir "${params.dir}", mode: 'copy'
+    publishDir "${params.dir}", mode: 'copy'
     
-        input:
-        file(simvcf) from outvcf_ch
+    input:
+    file(simvcf) from out_ch
     
-        output:
-        set file(simvcf), file("${params.out}.eigen*") into pca_ch
+    output:
+    set file("${params.out}.{bed,bim,fam}"), file("${params.out}.eigen*") into pca_ch
 
-        script:
-        """
-        ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
-        sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
+    script:
+    if(params.pca)    
+    """
+    ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
+    sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
         
-        # 1) convert to PLINK2 format
-        plink2 --vcf $simvcf --out ${params.out}
+    # 1) convert to PLINK format
+    plink2 --vcf $simvcf --make-bed --out ${params.out}
         
-        # 2) prune with --indep-pairwise
-        plink2 --pfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out}
-        plink2 --pfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-pgen
+    # 2) prune with --indep-pairwise
+    plink2 --bfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out}
+    plink2 --bfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-bed
         
-        # 4) Compute PCA
-        if [[ ${params.n} -ge 5000 ]]; then approx="approx"; else approx=""; fi
-        plink2 --pfile ${params.out}.pruned --pca \$approx --out ${params.out}
-        """
-    }
-
+    # 4) Compute PCA
+    if [[ ${params.n} -ge 5000 ]]; then approx="approx"; else approx=""; fi
+    plink2 --bfile ${params.out}.pruned --pca $params.n \$approx --out ${params.out}
+    """ 
+    else
+    """
+    ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
+    sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf
+    plink2 --vcf $simvcf --make-bed --out ${params.out}    
+    """
 }
+
+
