@@ -106,9 +106,11 @@ params.keySet().each{
   }
 }
 
+def grid2ch = grid.clone() 
 grid.keySet().each {
     if (grid[it] =~ /,/){
         grid[it] = grid[it].tokenize(',')
+        grid2ch[it] = Channel.fromList(grid[it].clone())
     } else if (grid[it] =~ /:/) {
         def (start, end, step) = grid[it].tokenize(':')
         def seq = []
@@ -118,36 +120,29 @@ grid.keySet().each {
             val += step.toFloat().round(4)
         }
         grid[it] = seq
+        grid2ch[it] = Channel.fromList(seq)
+    } else {
+        grid2ch[it] = Channel.of(grid[it])
     }
 }
 
-/*
- *  Expand parameter grid
- */
+grid2ch.n
+.combine(grid2ch.q)
+.combine(grid2ch.PTgen)
+.combine(grid2ch.GTgen)
+.combine(grid2ch.s)
+.combine(grid2ch.hs2)
+.combine(grid2ch.hg2)
+.combine(grid2ch.alphaG)
+.combine(grid2ch.lambda)
+.combine(grid2ch.alphaH)
+.combine(Channel.fromList(1..params.r))
+.map{
 
-process expand_grid {
+    id = [it[3] + "|n=" + it[0]]
+    it = id + it
 
-    input:
-    each n from grid.n
-    each q from grid.q
-    each PTgen from grid.PTgen
-    each GTgen from grid.GTgen
-    each s from grid.s
-    each hs2 from grid.hs2
-    each hg2 from grid.hg2
-    each alphaG from grid.alphaG
-    each lambda from grid.lambda
-    each alphaH from grid.alphaH
-    each r from Channel.from(1..params.r)
-
-    output:
-    tuple id,n,q,PTgen,GTgen,s,hs2,hg2,alphaG,lambda,alphaH,r into grid_ch
-
-    script:
-    id = "$GTgen|n=$n"
-    """
-    """
-}
+}.set{grid_ch}
 
 /*
  *  Compute kinship
