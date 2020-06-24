@@ -164,8 +164,12 @@ process kinship {
     id = "$GTgen|n=$n"
     """
     # Subset genotype by n
-    cut -d ',' -f 1-\$(( $n + 3 )) $gemma > ${GTgen}.n${n}.gemma
-
+    if [[ \$(( $n + 3 )) -lt \$(head -1 $gemma | awk 'NR==1{print NF}') ]]; then
+        cut -d ',' -f 1-\$(( $n + 3 )) $gemma > ${GTgen}.n${n}.gemma
+    else 
+        ln -s ${gemma} ${GTgen}.n${n}.gemma
+    fi
+    
     # Compute kinship using all variants
     Rscript -e 'write.table(file = "dummypheno", rnorm($n), col.names = F, row.names = F)'
     gemma -gk 2 -g ${GTgen}.n${n}.gemma -p dummypheno -outdir . -o $GTgen
