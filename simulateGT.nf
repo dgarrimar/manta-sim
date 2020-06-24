@@ -229,7 +229,7 @@ if (params.pca) {
         
         # 4) Compute PCA
         if [[ ${params.n} -ge 5000 ]]; then approx="approx"; else approx=""; fi
-        plink2 --pfile ${params.out}.pruned --pca \$approx --out ${params.out}
+        plink2 --pfile ${params.out}.pruned --pca ${params.n} \$approx --out ${params.out}
         """
     }
 
