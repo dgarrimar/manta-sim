@@ -29,6 +29,7 @@ params.alphaG = 0.5
 params.lambda = 0.5
 params.alphaH = 0.5
 params.t = 'none'
+params.k = 20
 
 /*
  *  Print usage and help
@@ -60,6 +61,7 @@ if (params.help) {
   log.info ' --lambda STRUCT NOISE       fraction of structured noise (default: 0.5)'
   log.info ' --alphaH S. NOISE SHARED    fraction of structured noise that is shared across traits (default: 0.5)'
   log.info ' --t TRANSFORM               transformation of response variables: none, PCA, GAMMA (default: none)'
+  log.info ' --k NUMBER PC               Number of PCs used when transformation = PCA (default: 20)'
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
@@ -91,6 +93,7 @@ log.info "Fraction of hg2 shared       : ${params.alphaG}"
 log.info "Fraction of st. noise        : ${params.lambda}"
 log.info "Fraction of st. noise shared : ${params.alphaH}"
 log.info "Transformation               : ${params.t}"
+log.info "Number of PCs                : ${params.k}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
@@ -229,7 +232,7 @@ if("PCA" in grid.t) {
         plink2 --pfile ${GTgen} --indep-pairwise 50 5 0.1 --keep keep.txt --out ${GTgen}
         plink2 --pfile ${GTgen} --extract ${GTgen}.prune.in --keep keep.txt --out ${GTgen}.pruned --make-pgen
         if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
-        plink2 --pfile ${GTgen}.pruned --pca \$approx --out ${GTgen} 
+        plink2 --pfile ${GTgen}.pruned --pca ${params.k} \$approx --out ${GTgen} 
         """
     }
 
@@ -283,7 +286,7 @@ process MLM {
     }else if (t == 'PCA'){
     par_ext = par + "|MLM_PCA"
     """
-    mlm.R -p $pheno -g $geno -t $t -c $eigenval -o mlm.assoc.txt
+    mlm.R -p $pheno -g $geno -t $t -c $eigenval -n ${params.k} -o mlm.assoc.txt
     """
     }else if (t == 'GAMMA'){
     par_ext = par + "|MLM_GAMMA"
@@ -315,7 +318,7 @@ process MANOVA { // identical to MLM with --manova
     } else if (t == 'PCA') {
     par_ext = par + "|MANOVA_PCA"
     """
-    mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt -c $eigenval --manova
+    mlm.R -p $pheno -g $geno -t $t -o manova.assoc.txt -c $eigenval -n ${params.k} --manova
     """
     } else if (t == 'GAMMA') {
     par_ext = par + "|MANOVA_GAMMA"

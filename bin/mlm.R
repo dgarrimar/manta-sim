@@ -19,6 +19,8 @@ option_list = list(
               help="Variance components computed by GEMMA", metavar="character"),
   make_option(c("-c", "--covariates"), type="character", default=NULL,
               help="Covariates (genotype PCs computed by plink2)", metavar="character"),
+  make_option(c("-n", "--number"), type="numeric", default=20,
+	      help="Number of PCs used to correct", metavar="numeric"),
   make_option(c("-t", "--transformation"), type="character", default="none",
               help="Transformation: none or GAMMA [default %default]", metavar="character"),
   make_option(c("--manova"), action="store_true", default=F,
@@ -80,7 +82,7 @@ if(transf == "GAMMA"){
   Y <- rotate(Y, Sigma)		        
   X <- rotate(X, Sigma)
 } else if (transf == "PCA"){
-  k <- 10
+  k <- opt$number
   covariates <- read.table(covariate_file)[, -1]
   covariates <- covariates[, c(1:k)]
 }
