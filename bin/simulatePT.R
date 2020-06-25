@@ -7,6 +7,7 @@
 library(optparse)
 library(MASS)
 library(data.table)
+library(BEDMatrix)
 
 option_list = list(
   make_option(c("-r","--rpt"), type="numeric", default=0,
@@ -96,15 +97,15 @@ if (PTgen == "matrixNorm"){
   
    if (s != 0){
      # Load genotypes
-     S <- fread(geno, data.table = FALSE, sep = ",")
-     p <- nrow(S) # Total number of variants
+     S <- as.matrix(BEDMatrix(geno, simple_names = T))
+     p <- ncol(S) # Total number of variants
           
      # Select causal SNP(s)
      sel <- sample(1:p, size = s)
-     ids <- S[sel, 1]
+     ids <- colnames(S)[sel]
      write.table(ids, file = id_file, col.names = F, row.names = F, quote = F)
 
-     X <- scale(t(S[sel, -c(1:3), drop = F])) # Standarized genotypes
+     X <- scale(S[, sel]) # Standarized genotypes
      
      # Generate effects
      B <- matrix(sample(c(-1,1), replace = T, size = s*q), s, q)

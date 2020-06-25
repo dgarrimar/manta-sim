@@ -7,6 +7,7 @@
 library(optparse)
 library(mlm)
 library(data.table)
+library(BEDMatrix)
 
 option_list = list(
   make_option(c("-p","--pheno"), type="character", default=NULL,
@@ -40,11 +41,9 @@ if (is.null (opt$geno) || is.null (opt$pheno) || is.null(opt$output) ){
 set.seed(123)
 
 Y <- as.matrix(fread(opt$pheno, data.table = F))
-X <- fread(opt$geno, data.table = F, sep = ",")
+X <- as.matrix(BEDMatrix(opt$geno, simple_names = T))
 
-rs <- X[, 1]
-X[, c(1:3)] <- NULL
-X <- t(X)
+id <- colnames(X)
 
 # Apply same filter as in GEMMA regarding MAF (default)
 maf <- apply(X, 2, function(x){
@@ -52,7 +51,7 @@ maf <- apply(X, 2, function(x){
   maf <- sum(c(tbl[3], tbl[2]/2), na.rm = T) / sum(tbl, na.rm = T)
 })
 X <- X[, maf >= 0.01]
-rs <- rs[maf >= 0.01]
+id <- id[maf >= 0.01]
 
 transf <- opt$t
 covariate_file <- opt$covariates
@@ -83,8 +82,8 @@ if(transf == "GAMMA"){
   X <- rotate(X, Sigma)
 } else if (transf == "PCA"){
   k <- opt$number
-  covariates <- read.table(covariate_file)[, -1]
-  covariates <- covariates[, c(1:k)]
+  covariates <- read.table(covariate_file)[, -c(1:2)]
+  covariates <- covariates[, 1:k]
 }
 
 ## 1. Run mlm/manova
@@ -125,7 +124,7 @@ if(transf == "GAMMA"){
    } 
  }
 
- res <- cbind.data.frame(rs, res)
+ res <- cbind.data.frame(id, res)
  colnames(res) <- c("rs", "p_value")
  
  # Save
