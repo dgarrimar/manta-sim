@@ -1,15 +1,16 @@
 
 library(ggplot2)
 library(cowplot)
+library(data.table)
 
 path = "GT/1k_wg"
 l <- list()
 for (sim in c("simEmpirical", "simPopStructure", "simUnrelated", "simRelated")){
-  va <- read.table(sprintf("%s/%s.eigenval", path, sim))$V1
-  ve <- read.table(sprintf("%s/%s.eigenvec", path, sim))
+  va <- fread(sprintf("%s/%s.eigenval", path, sim), data.table = F)$V1
+  ve <- fread(sprintf("%s/%s.eigenvec", path, sim), data.table = F)
   
   pve <- (va/sum(va))[1:2] * 100
-  df <- ve[,2:3]
+  df <- ve[,3:4]
   colnames(df) <- c("PC1", "PC2")
   
   l[[sim]] <- 
