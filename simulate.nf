@@ -16,7 +16,7 @@ params.help = false
 // Simulation params
 params.n = 100 
 params.q = 3
-params.p = 1000
+params.p = 100
 params.r = 1
 params.PTgen = 'matrixNorm'    
 params.GTgen = 'simPopStructure_chr22' 
@@ -47,7 +47,7 @@ if (params.help) {
   log.info 'Parameters:'
   log.info ' --n SAMPLE SIZE             total number of samples (default: 100)'
   log.info ' --q RESPONSES               number of response variables (default: 3)'
-  log.info ' --p VARIANTS                number of variants to test (default: 1000)'
+  log.info ' --p VARIANTS                number of variants to test (default: 100)'
   log.info ' --r REPEAT                  times to repeat each simulation (default: 1)'
   log.info ' --PTgen PHENO GENERATION    phenotype data generation: matrixNorm or copula (default: matrixNorm)'
   log.info ' --GTgen GENO GENERATION     genotype data generation: simPopStructure, simUnrelated, simRelated, simEmpirical (default: simPopStructure)'
@@ -148,10 +148,10 @@ grid2ch.n
 }.set{grid_ch}
 
 /*
- *
+ *  Prepare genotype 
  */
 
-process get_geno {
+process prepare {
 
     tag { id }
 
@@ -211,7 +211,7 @@ grid_ch.combine(geno_thin_ch, by:0).combine(kinship_ch, by: 0).set{gt2pt_ch}
  *  Simulate phenotype
  */ 
 
-process simulatePT {
+process simulate {
 
     tag { par }
 
@@ -230,9 +230,9 @@ process simulatePT {
 
 if("PCA" in grid.t) {
 
- /*
-  *  Genotype PCA
-  */
+   /*
+    *  Genotype PCA
+    */
     
     process pca {
  
@@ -255,18 +255,17 @@ if("PCA" in grid.t) {
 
     pheno_ch.combine(pca_ch, by: 0).into{input_gemma_ch;input_mlm_ch;input_manova_ch}
 
-} else {
-   
+} else {   
+
     pheno_ch.spread(Channel.of("dummy")).into{input_gemma_ch;input_mlm_ch;input_manova_ch}
 
 } 
-
 
 /*
  * Run GEMMA, MLM and MANOVA
  */
 
-process GEMMA {
+process gemma {
   
     tag { par }
 
@@ -286,7 +285,7 @@ process GEMMA {
     """
 }
 
-process MLM {
+process mlm {
 
     input:
     tuple dummy, par, file(bed), file(bim), file(fam), file(kinship), file(pheno), file(ids), file(eigenval) from input_mlm_ch
@@ -296,31 +295,31 @@ process MLM {
     tuple par_ext, file(ids), file("mlm.assoc.txt") into mlm_ch
 
     script:
-    if (t == 'none'){
-    par_ext = par + "|MLM"
-    """
-    mlm.R -p $pheno -g $bed -t $t -o mlm.assoc.txt
-    """
-    }else if (t == 'PCA'){
-    par_ext = par + "|MLM_PCA"
-    """
-    mlm.R -p $pheno -g $bed -t $t -c $eigenval -n ${params.k} -o mlm.assoc.txt
-    """
-    }else if (t == 'GAMMA'){
-    q = par.split("\\|")[1].toInteger() // # 0-indexed
-    par_ext = par + "|MLM_GAMMA"
-    """
-    paste <(cut -f1-5 $fam) pheno.txt > tmpfile; mv tmpfile $fam
-    for i in {1..$q}; do
-        gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
-        grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
-    done > VC.txt
-    mlm.R -p $pheno -g $bed -t $t -k $kinship -v VC.txt -o mlm.assoc.txt
-    """
+    if (t == 'none') {
+        par_ext = par + "|MLM"
+        """
+        mlm.R -p $pheno -g $bed -t $t -o mlm.assoc.txt
+        """
+    } else if (t == 'PCA') {
+        par_ext = par + "|MLM_PCA"
+        """
+        mlm.R -p $pheno -g $bed -t $t -c $eigenval -n ${params.k} -o mlm.assoc.txt
+        """
+    } else if (t == 'GAMMA') {
+        q = par.split("\\|")[1].toInteger() // # 0-indexed
+        par_ext = par + "|MLM_GAMMA"
+        """
+        paste <(cut -f1-5 $fam) pheno.txt > tmpfile; mv tmpfile $fam
+        for i in {1..$q}; do
+            gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
+            grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
+        done > VC.txt
+        mlm.R -p $pheno -g $bed -t $t -k $kinship -v VC.txt -o mlm.assoc.txt
+        """
     }
 }
 
-process MANOVA { // identical to MLM with --manova
+process manova { // identical to MLM with --manova
 
     input:
     tuple dummy, par, file(bed), file(bim), file(fam), file(kinship), file(pheno), file(ids), file(eigenval) from input_manova_ch
@@ -331,36 +330,36 @@ process MANOVA { // identical to MLM with --manova
 
     script:
     if (t == 'none'){
-    par_ext = par + "|MANOVA"
-    """
-    mlm.R -p $pheno -g $bed -t $t -o manova.assoc.txt --manova
-    """
+        par_ext = par + "|MANOVA"
+        """
+        mlm.R -p $pheno -g $bed -t $t -o manova.assoc.txt --manova
+        """
     } else if (t == 'PCA') {
-    par_ext = par + "|MANOVA_PCA"
-    """
-    mlm.R -p $pheno -g $bed -t $t -o manova.assoc.txt -c $eigenval -n ${params.k} --manova
-    """
+        par_ext = par + "|MANOVA_PCA"
+        """
+        mlm.R -p $pheno -g $bed -t $t -o manova.assoc.txt -c $eigenval -n ${params.k} --manova
+        """
     } else if (t == 'GAMMA') {
-    q = par.split("\\|")[1].toInteger() // # 0-indexed
-    par_ext = par + "|MANOVA_GAMMA"
-    """
-    paste <(cut -f1-5 $fam) pheno.txt > tmpfile; mv tmpfile $fam
-    for i in {1..$q}; do
-        gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
-        grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
-    done > VC.txt
-    mlm.R -p $pheno -g $bed -t $t -k $kinship -v VC.txt -o manova.assoc.txt --manova
-    """
+        q = par.split("\\|")[1].toInteger() // # 0-indexed
+        par_ext = par + "|MANOVA_GAMMA"
+        """
+        paste <(cut -f1-5 $fam) pheno.txt > tmpfile; mv tmpfile $fam
+        for i in {1..$q}; do
+            gemma -vc 2 -p $pheno -k $kinship -n \$i -outdir . -o VC &> /dev/null
+            grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
+        done > VC.txt
+        mlm.R -p $pheno -g $bed -t $t -k $kinship -v VC.txt -o manova.assoc.txt --manova
+        """
     }
 }
 
 gemma_ch.concat(mlm_ch, manova_ch).set{tie_power_ch}
 
 /*
- *  Compute TIE or power
+ *  Compute TIE/power
  */
 
-process tie_power {
+process tie {
     
     input:
     each m from grid.m
@@ -375,7 +374,6 @@ process tie_power {
     paste <(echo -e "$par|$m" | sed 's/|/\t/g') tieORpower.txt > res.txt
     """
 }
-
 
 out_ch.collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
 
