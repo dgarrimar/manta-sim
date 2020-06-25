@@ -118,7 +118,7 @@ grid.keySet().each {
         def (start, end, step) = grid[it].tokenize(':')
         def seq = []
         def val = start.toFloat()
-        while(val.round(4) <= end.toFloat().round(4)){
+        while(val.toFloat().round(4) <= end.toFloat().round(4)){
             seq += val.round(4)
             val += step.toFloat().round(4)
         }
