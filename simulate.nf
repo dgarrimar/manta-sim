@@ -287,6 +287,8 @@ process gemma {
 
 process mlm {
 
+    tag { par_ext }
+
     input:
     tuple dummy, par, file(bed), file(bim), file(fam), file(kinship), file(pheno), file(ids), file(eigenval) from input_mlm_ch
     each t from grid.t
@@ -320,6 +322,8 @@ process mlm {
 }
 
 process manova { // identical to MLM with --manova
+
+    tag { par_ext }
 
     input:
     tuple dummy, par, file(bed), file(bim), file(fam), file(kinship), file(pheno), file(ids), file(eigenval) from input_manova_ch
@@ -360,7 +364,9 @@ gemma_ch.concat(mlm_ch, manova_ch).set{tie_power_ch}
  */
 
 process tie {
-    
+
+    tag{ "$par|$m" }   
+ 
     input:
     each m from grid.m
     tuple par, file(ids), file(assoc) from tie_power_ch
