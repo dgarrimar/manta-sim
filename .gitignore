@@ -13,3 +13,4 @@ GEMMA
 docker/.docker
 singularity
 run
+tmp*
