@@ -385,7 +385,7 @@ out_ch.collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
 
 process end {
 
-   publishDir "${params.dir}"
+   publishDir "${params.dir}", mode: 'copy'
 
    input:
    file(sim) from pub_ch
