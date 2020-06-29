@@ -10,30 +10,30 @@ library(data.table)
 library(BEDMatrix)
 
 option_list = list(
-  make_option(c("-p","--pheno"), type="character", default=NULL,
+  make_option(c("-p","--pheno"), type="character", 
               help="phenotype data obtained by simulatePT.R", metavar="character"),
-  make_option(c("-g","--geno"), type="character", default=NULL,
+  make_option(c("-g","--geno"), type="character", 
               help="genotype data obtained by simulateGT.nf", metavar="character"),
-  make_option(c("-k","--kinship"), type="character", default=NULL,
+  make_option(c("-k","--kinship"), type="character", 
               help="kinship matrix obtained by simulateGT.nf", metavar="character"),
-  make_option(c("-v", "--vc"), type="character", default=NULL,
+  make_option(c("-v", "--vc"), type="character", 
               help="Variance components computed by GEMMA", metavar="character"),
-  make_option(c("-c", "--covariates"), type="character", default=NULL,
+  make_option(c("-c", "--covariates"), type="character", 
               help="Covariates (genotype PCs computed by plink2)", metavar="character"),
   make_option(c("-n", "--number"), type="numeric", default=20,
 	      help="Number of PCs used to correct", metavar="numeric"),
   make_option(c("-t", "--transformation"), type="character", default="none",
               help="Transformation: none or GAMMA [default %default]", metavar="character"),
-  make_option(c("--manova"), action="store_true", default=F,
-              help="Perform MANOVA instead of MLM [default %default]"),
-  make_option(c("-o", "--output"), type="character", default=NULL,
-              help="Output (MLM p-values) file name", metavar="character")
+  make_option(c("--mlm"), type="character", 
+              help="Output (MLM p-values) file name)", metavar="character"),
+  make_option(c("--manova"), type="character",
+              help="Optional output (MANOVA p-values) file name", metavar="character")
   )
 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
 
-if (is.null (opt$geno) || is.null (opt$pheno) || is.null(opt$output) ){
+if (is.null (opt$geno) || is.null (opt$pheno) || is.null(opt$mlm) ){
   print_help(opt_parser)
   stop("Required I/O files must be supplied\n", call.=FALSE)
 }
@@ -50,7 +50,7 @@ maf <- apply(X, 2, function(x){
   tbl <- table(x)
   maf <- sum(c(tbl[3], tbl[2]/2), na.rm = T) / sum(tbl, na.rm = T)
 })
-X <- X[, maf >= 0.01]
+X <- X[, maf >= 0.01, drop = F]
 id <- id[maf >= 0.01]
 
 transf <- opt$t
@@ -80,7 +80,9 @@ if(transf == "GAMMA"){
   Sigma <- Vg*Rg + Ve*diag(nrow(Y))
   Y <- rotate(Y, Sigma)		        
   X <- rotate(X, Sigma)
+
 } else if (transf == "PCA"){
+  # Subset covariates
   k <- opt$number
   covariates <- read.table(covariate_file)[, -c(1:2)]
   covariates <- covariates[, 1:k]
@@ -88,45 +90,23 @@ if(transf == "GAMMA"){
 
 ## 1. Run mlm/manova
 
- # Run
- res <- c()
- if(opt$manova){
-   if (is.null(covariate_file)){
-#     res <- apply(X, 2, function(x){summary(manova(Y ~ x))$stats[1,6]})
-      res <- c()
-      for (snp in 1:ncol(X)) {
-          print(snp)
-          res[snp] <- summary(manova(Y ~ X[,snp]))$stats[1,6]
-      }
-   } else {
-#     res <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
-      res <- c()
-      for (snp in 1:ncol(X)) {
-          print(snp)
-          res[snp] <- summary(manova(Y ~ ., data = data.frame(X[,snp], covariates)))$stats[1,6]
-      }
-   } 
- }else{
-   if (is.null(covariate_file)){
-#     res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
-      res <- c()
-      for (snp in 1:ncol(X)) {
-          print(snp)
-          res[snp] <- mlm(Y ~ X[,snp])$aov.tab[1,6]
-      }
-   } else {
-#     res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
-      res <- c()
-      for (snp in 1:ncol(X)) {
-          print(snp)
-          res[snp] <- mlm(Y ~ ., data = data.frame(X[,snp], covariates))$aov.tab[1,6]
-      }
-   } 
- }
 
+ if (transf != "PCA"){
+   res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+ } else {
+   res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+ } 
  res <- cbind.data.frame(id, res)
  colnames(res) <- c("rs", "p_value")
- 
- # Save
- write.table(res, file = opt$output, col.names = T, row.names = F, quote = F, sep = "\t")
+ write.table(res, file = opt$mlm, col.names = T, row.names = F, quote = F, sep = "\t")
 
+ if(!is.null(opt$manova)){
+   if (transf != "PCA"){
+     res_manova <- apply(X, 2, function(x){summary(manova(Y ~ x))$stats[1,6]})
+   } else {
+     res_manova <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
+   }
+   res_manova <- cbind.data.frame(id, res_manova)
+   colnames(res_manova) <- c("rs", "p_value")
+   write.table(res_manova, file = opt$manova, col.names = T, row.names = F, quote = F, sep = "\t")
+ } 
