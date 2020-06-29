@@ -35,15 +35,13 @@ option_list = list(
   make_option(c("--alphaH"), type="numeric", default=0.3,
               help="Fraction of structured noise that is shared across traits [default %default]", metavar="numeric"),
   make_option(c("-o", "--output"), type="character", default=NULL,
-              help="Output (simulated phenotype) file name", metavar="character"),
-  make_option(c("-i", "--id_file"), type="character", default=NULL,
-              help="IDs of variants generated under H1, if any", metavar="character")
+              help="Output (simulated phenotype) file name", metavar="character")
 )
 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
 
-if (is.null(opt$output) || is.null (opt$geno) || is.null (opt$kinship) || is.null(opt$id_file)){
+if (is.null(opt$output) || is.null (opt$geno) || is.null (opt$kinship)){
   print_help(opt_parser)
   stop("Required I/O files must be supplied\n", call.=FALSE)
 }
@@ -57,7 +55,6 @@ PTgen <- opt$PTgen
 geno <- opt$geno
 kinship <- opt$kinship
 hs2 <- opt$hs2
-id_file <- opt$id_file
 if(s == 0) {
   hs2 <- 0
 } 
@@ -102,8 +99,6 @@ if (PTgen == "matrixNorm"){
           
      # Select causal SNP(s)
      sel <- sample(1:p, size = s)
-     ids <- colnames(S)[sel]
-     write.table(ids, file = id_file, col.names = F, row.names = F, quote = F)
 
      X <- scale(S[, sel]) # Standarized genotypes
      
@@ -115,7 +110,6 @@ if (PTgen == "matrixNorm"){
      XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) 
    } else {
      XB <- matrix(0, n, q)
-     ignore <- file.create(id_file)
    }
   
   ## 2. Relatedness signal 

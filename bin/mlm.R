@@ -97,7 +97,6 @@ if(transf == "GAMMA"){
    res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
  } 
  res <- cbind.data.frame(id, res)
- colnames(res) <- c("rs", "p_value")
  write.table(res, file = opt$mlm, col.names = T, row.names = F, quote = F, sep = "\t")
 
  if(!is.null(opt$manova)){
@@ -107,6 +106,5 @@ if(transf == "GAMMA"){
      res_manova <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
    }
    res_manova <- cbind.data.frame(id, res_manova)
-   colnames(res_manova) <- c("rs", "p_value")
    write.table(res_manova, file = opt$manova, col.names = T, row.names = F, quote = F, sep = "\t")
  } 

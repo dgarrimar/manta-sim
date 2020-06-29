@@ -262,7 +262,7 @@ process simulate_test {
     """ 
     simulatePT.R -r $v -n $n -q $q --PTgen $PTgen --geno $bed --kinship $kinship -s $s --hs2 $hs2 --hg2 $hg2 --alphaG $alphaG --lambda $lambda --alphaH $alphaH -o pheno.txt -i ids.txt
  
-    head -n $v $bim | tail -n 1 > variant.txt
+    head -n $v $bim | tail -n 1 | cut -f2 > variant.txt
     plink2 --bfile \$(basename $bed | sed 's/.bed//') --seed 1 --extract variant.txt --out geno --make-bed   
  
     paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
