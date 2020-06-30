@@ -232,7 +232,7 @@ process simulate_test {
     each t from grid.t
    
     output:
-    tuple par_gemma, file('gemma.assoc.txt') into gemma_v_ch
+    tuple par_gemma, file('gemma.assoc.txt') optional true into gemma_v_ch
     tuple par_mlm, file('mlm.assoc.txt') into mlm_v_ch
     tuple par_manova, file('manova.assoc.txt') into manova_v_ch
 
@@ -242,18 +242,25 @@ process simulate_test {
     par_mlm = "$par|MLM_$t"
     par_manova = "$par|MANOVA_$t" 
     pids = (1..q).join(' ')
+    single = t
+    if(grid.t instanceof List) {
+       single = grid.t[0]
+    }
     """ 
+    # Extract single variant
     sed -n ${v}p $bim | cut -f2 > variant.txt    
     plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract variant.txt --out geno --make-bed   
-  
+   
+    # Simulate phenotype
     simulatePT.R -s $v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
-     
     paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
     
-    # Run GEMMA
-    gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma
-    sed '1d' gemma.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma.assoc.txt
-    
+    # Run GEMMA once
+    if [[ $single == $t ]]; then
+      gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma
+      sed '1d' gemma.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma.assoc.txt
+    fi   
+ 
     # Run MLM/MANOVA with transformation
     if [[ $t == "GAMMA" ]]; then
         paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
@@ -269,7 +276,7 @@ process simulate_test {
     """
 }
 
-gemma_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.distinct{it[0]}.set{gemma_ch}
+gemma_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.view().set{gemma_ch}
 mlm_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.set{mlm_ch}
 manova_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.set{manova_ch}
 
