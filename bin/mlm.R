@@ -27,7 +27,9 @@ option_list = list(
   make_option(c("--mlm"), type="character", 
               help="Output (MLM p-values) file name)", metavar="character"),
   make_option(c("--manova"), type="character",
-              help="Optional output (MANOVA p-values) file name", metavar="character")
+              help="Optional output (MANOVA p-values) file name", metavar="character"),
+  make_option(c("--scale"), type="character", action = "store_true", default = FALSE,
+              help="Scale response variables [default %default]", metavar="logical")
   )
 
 opt_parser <- OptionParser(option_list=option_list)
