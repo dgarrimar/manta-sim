@@ -22,7 +22,7 @@ RUN apt-get update --fix-missing -qq && apt-get install -y -q \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ## Install R packages
-RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix"), repos="http://cloud.r-project.org/")'
+RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula"), repos="http://cloud.r-project.org/")'
 
 ## Install mlm
 RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
