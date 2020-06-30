@@ -23,9 +23,9 @@ option_list = list(
               help="genotype data (single variant) obtained by simulateGT.nf", metavar="character"),
   make_option(c("--kinship"), type="character", default=NULL,
               help="kinship matrix obtained by simulateGT.nf", metavar="character"),
-  make_option(c("--hs2"), type="numeric", default=0.01,
+  make_option(c("--hs2"), type="numeric", default=0,
               help="Average fraction of variance explained by causal variants across traits [default %default]", metavar="numeric"),
-  make_option(c("--hg2"), type="numeric", default=0.4,
+  make_option(c("--hg2"), type="numeric", default=0,
               help="Average fraction of variance explained by causal variants across traits [default %default]", metavar="numeric"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output (simulated phenotype) file name", metavar="character")
