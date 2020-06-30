@@ -1,12 +1,14 @@
 FROM rocker/r-ver:3.5.2
 
 RUN apt-get update --fix-missing -qq && apt-get install -y -q \
-# devtools dependencies
+# R:devtools dependencies
        libcurl4-openssl-dev \
        libssl-dev \
        libssh2-1-dev \
        libxml2-dev \
        zlib1g-dev \
+# R:copula dependencies
+       libgsl-dev \ 
 # bcftools dependencies
        libbz2-dev \
        liblzma-dev \
