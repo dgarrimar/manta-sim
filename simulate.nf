@@ -289,9 +289,11 @@ process simulate_test {
        fi
        mlm.R -p pheno.txt -g geno -t $t -c $eigenval -n ${params.k} -k $kinship -v VC.txt --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt --scale
     done
-    for method in {gemma,mlm,manova}; do
-       cat \${method}_*.assoc.txt > \${method}.assoc.txt
-    done
+    cat mlm_*.assoc.txt > mlm.assoc.txt
+    cat manova_*.assoc.txt > manova.assoc.txt
+    if [[ $single == $t ]]; then
+       cat gemma_*.assoc.txt > gemma.assoc.txt
+    fi
     """
 }
 
