@@ -241,7 +241,7 @@ process simulate_test {
     par_gemma = "$par|GEMMA"
     par_mlm = "$par|MLM_$t"
     par_manova = "$par|MANOVA_$t" 
-    pids = (1..q).join(' ')
+    pids = (1..q.toInteger()).join(' ')
     single = t
     if(grid.t instanceof List) {
        single = grid.t[0]
