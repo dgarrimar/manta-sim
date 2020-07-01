@@ -25,6 +25,7 @@ params.hs2 = 0
 params.hg2 = 0
 params.t = 'none'
 params.k = 20
+params.c = 10
 
 /*
  *  Print usage and help
@@ -52,6 +53,7 @@ if (params.help) {
   log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0.3)'
   log.info ' --t TRANSFORM               transformation of response variables: none, PCA, GAMMA (default: none)'
   log.info ' --k NUMBER PC               Number of PCs used when transformation = PCA (default: 20)'
+  log.info ' --c NUMBER CHUNKS           Number of chunks (default: 10)'
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
@@ -79,9 +81,18 @@ log.info "Causal variant heritability  : ${params.hs2}"
 log.info "Relatedness heritability     : ${params.hg2}"
 log.info "Transformation               : ${params.t}"
 log.info "Number of PCs                : ${params.k}"
+log.info "Number of chunks             : ${params.c}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
+
+/*
+ *  Checks
+ */ 
+
+if (params.p%params.c != 0) {
+    exit 1, "ERROR: p%c should be 0"
+}
 
 /*
  *  Expand parameters
@@ -228,7 +239,7 @@ process simulate_test {
 
     input:
     tuple id,n,q,PTgen,GTgen,hs2,hg2,file(bed),file(bim),file(fam),file(kinship),file(eigenval) from gt2pt_ch
-    each v from Channel.fromList(1..params.p)
+    each c from Channel.fromList(1..params.c)
     each t from grid.t
    
     output:
@@ -247,32 +258,40 @@ process simulate_test {
        single = grid.t[0]
     }
     """ 
-    # Extract single variant
-    sed -n ${v}p $bim | cut -f2 > variant.txt    
-    plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract variant.txt --out geno --make-bed   
-   
-    # Simulate phenotype
-    simulatePT.R -s $v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
-    paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
-    
-    # Run GEMMA once
-    if [[ $single == $t ]]; then
-      gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma
-      sed '1d' gemma.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma.assoc.txt
-    fi   
+    # Manage chunks
+    start=\$(( ($c-1)*(${params.p}/${params.c}) + 1 ))
+    end=\$(( $c*(${params.p}/${params.c}) ))
  
-    # Run MLM/MANOVA with transformation
-    if [[ $t == "GAMMA" ]]; then
-        paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
-        for i in {1..$q}; do
-            gemma -vc 2 -p pheno.txt -k $kinship -n \$i -outdir . -o VC &> /dev/null
-            grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
-        done > VC.txt
-    else
-        touch VC.txt
-    fi
+    for (( v=\$start; v<=(\$end); v++ )); do
+       # Extract single variant
+       sed -n \${v}p $bim | cut -f2 > variant.txt    
+       plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract variant.txt --out geno --make-bed   
+   
+       # Simulate phenotype
+       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
+       paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
     
-    mlm.R -p pheno.txt -g geno -t $t -c $eigenval -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --manova manova.assoc.txt --scale
+       # Run GEMMA once
+       if [[ $single == $t ]]; then
+          gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v
+          sed '1d' gemma_\$v.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma_\$v.assoc.txt
+       fi   
+ 
+       # Run MLM/MANOVA with transformation
+       if [[ $t == "GAMMA" ]]; then
+          paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
+          for i in {1..$q}; do
+             gemma -vc 2 -p pheno.txt -k $kinship -n \$i -outdir . -o VC &> /dev/null
+             grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
+          done > VC.txt
+       else
+          touch VC.txt
+       fi
+       mlm.R -p pheno.txt -g geno -t $t -c $eigenval -n ${params.k} -k $kinship -v VC.txt --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt --scale
+    done
+    for method in {gemma,mlm,manova}; do
+       cat \${method}_*.assoc.txt > \${method}.assoc.txt
+    done
     """
 }
 
