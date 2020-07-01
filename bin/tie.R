@@ -30,6 +30,7 @@ set.seed(123)
 
 ## 1. Load inputs
  tests <- fread(opt$tests, data.table = F)
+ tests <- tests[!is.na(tests[,2]), ] # rm NA's
 
 ## 2. Compute TIE/power. 
 

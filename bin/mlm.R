@@ -103,9 +103,11 @@ if(transf == "GAMMA"){
 
  if(!is.null(opt$manova)){
    if (transf != "PCA"){
-     res_manova <- apply(X, 2, function(x){summary(manova(Y ~ x))$stats[1,6]})
+     res_manova <- apply(X, 2, function(x){tryCatch( {summary(manova(Y ~ x))$stats[1,6]}, 
+	     error = function(e){return(NA)} ) })
    } else {
-     res_manova <- apply(X, 2, function(x){summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]})
+     res_manova <- apply(X, 2, function(x){tryCatch( {summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]},
+	     error = function(e){return(NA)} )})
    }
    res_manova <- cbind.data.frame(id, res_manova)
    write.table(res_manova, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
