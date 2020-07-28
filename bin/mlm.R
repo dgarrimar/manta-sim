@@ -21,7 +21,7 @@ option_list = list(
   make_option(c("-c", "--covariates"), type="character", 
               help="Covariates (genotype PCs computed by plink2)", metavar="character"),
   make_option(c("-n", "--number"), type="numeric", default=20,
-	      help="Number of PCs used to correct", metavar="numeric"),
+              help="Number of PCs used to correct", metavar="numeric"),
   make_option(c("-t", "--transformation"), type="character", default="none",
               help="Transformation: none or GAMMA [default %default]", metavar="character"),
   make_option(c("--mlm"), type="character", 
@@ -80,7 +80,7 @@ if(transf == "GAMMA"){
   # Transform phenotypes and genotypes
   Vg <- vc[1]; Ve <- vc[2] 
   Sigma <- Vg*Rg + Ve*diag(nrow(Y))
-  Y <- rotate(Y, Sigma)		        
+  Y <- rotate(Y, Sigma)        
   X <- rotate(X, Sigma)
 
 } else if (transf == "PCA"){
@@ -106,10 +106,10 @@ if(transf == "GAMMA"){
  if(!is.null(opt$manova)){
    if (transf != "PCA"){
      res_manova <- apply(X, 2, function(x){tryCatch( {summary(manova(Y ~ x))$stats[1,6]}, 
-	     error = function(e){return(NA)} ) })
+             error = function(e){return(NA)} ) })
    } else {
      res_manova <- apply(X, 2, function(x){tryCatch( {summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]},
-	     error = function(e){return(NA)} )})
+             error = function(e){return(NA)} )})
    }
    res_manova <- cbind.data.frame(id, res_manova)
    write.table(res_manova, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")

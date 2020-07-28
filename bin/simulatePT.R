@@ -12,7 +12,7 @@ library(copula)
 
 option_list = list(
   make_option(c("-s","--seed"), type="numeric", default=0,
-	      help="Set seed for random processes [default %default]", metavar="numeric"),
+              help="Set seed for random processes [default %default]", metavar="numeric"),
   make_option(c("-n","--nb_samples"), type="numeric", default=1000,
               help="Total number of samples [default %default]", metavar="numeric"),
   make_option(c("-q", "--nb_responses"), type="numeric", default=3,
