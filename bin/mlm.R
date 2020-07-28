@@ -94,9 +94,11 @@ if(transf == "GAMMA"){
 
 
  if (transf != "PCA"){
-   res <- apply(X, 2, function(x){mlm(Y ~ x)$aov.tab[1,6]})
+   res <- apply(X, 2, function(x){tryCatch( {mlm(Y ~ x)$aov.tab[1,6]}, 
+             error = function(e){return(NA)} ) })
  } else {
-   res <- apply(X, 2, function(x){mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]})
+   res <- apply(X, 2, function(x){tryCatch( {mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]},
+             error = function(e){return(NA)} ) })
  } 
  res <- cbind.data.frame(id, res)
  write.table(res, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
