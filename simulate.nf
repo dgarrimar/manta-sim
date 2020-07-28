@@ -279,7 +279,6 @@ process simulate_test {
  
        # Run MLM/MANOVA with transformation
        if [[ $t == "GAMMA" ]]; then
-          paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
           for i in {1..$q}; do
              gemma -vc 2 -p pheno.txt -k $kinship -n \$i -outdir . -o VC &> /dev/null
              grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
