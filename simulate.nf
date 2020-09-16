@@ -294,7 +294,7 @@ process simulate_test {
     """
 }
 
-gemma_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.view().set{gemma_ch}
+gemma_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.set{gemma_ch}
 mlm_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.set{mlm_ch}
 manova_v_ch.collectFile(sort: { it.name }).map() {[it.name, it]}.set{manova_ch}
 
