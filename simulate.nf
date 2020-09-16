@@ -269,20 +269,18 @@ process simulate_test {
    
        # Simulate phenotype
        simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
-       paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
     
        # Run GEMMA once
        if [[ $single == $t ]]; then
+          paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
           gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v
           sed '1d' gemma_\$v.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma_\$v.assoc.txt
        fi   
  
        # Run MLM/MANOVA with transformation
        if [[ $t == "GAMMA" ]]; then
-          for i in {1..$q}; do
-             gemma -vc 2 -p pheno.txt -k $kinship -n \$i -outdir . -o VC &> /dev/null
-             grep -F "sigma2 estimates =" VC.log.txt | cut -d ' ' -f 7,9
-          done > VC.txt
+          paste <(cut -f1-2 geno.fam) pheno.txt > pheno2.txt
+          vc.py -b geno -p pheno2.txt -k $kinship -o VC.txt -v
        else
           touch VC.txt
        fi

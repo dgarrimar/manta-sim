@@ -17,8 +17,12 @@ RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 # python3
        python3 \
        python3-pip \
+# python2
+       python \
+       python-pip \
 # other
        wget \
+       git \
     && apt-get clean \
     && apt-get purge \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -29,8 +33,11 @@ RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "
 ## Install mlm
 RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
 
-## Install python packages
+## Install python3 packages
 RUN pip3 install pandas
+
+## Install python2 packages
+RUN pip install numpy scipy
 
 ## Change ENTRYPOINT
 ENTRYPOINT /bin/bash
@@ -59,3 +66,12 @@ RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/
     && gunzip gemma-0.98.1-linux-static.gz \
     && chmod +x gemma-0.98.1-linux-static \
     && mv gemma-0.98.1-linux-static /usr/local/bin/gemma
+
+## Install pyLMM
+RUN git clone https://github.com/michaelbilow/pylmm_zarlab \
+    && cd pylmm_zarlab \
+    # Fix a couple of bugs in the pyLMM code
+    && sed -i 's/True -/True ^/g' pylmm/lmm.py \
+    && sed -i 's/print(self.N)//' pylmm/input.py \ 
+    && python setup.py install
+    
