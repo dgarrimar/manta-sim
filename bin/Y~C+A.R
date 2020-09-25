@@ -59,8 +59,14 @@ option_list = list(
   make_option(c("--adonis"), type="numeric", default=0,
               help="Should permutation test be performed? Specify number of permutations [default %default]",
               metavar="numeric"),
+  make_option(c("-Q", "--QuadForm"), type="character", default="davies-F",
+              help="Method to compute the quadratic form [default %default]", metavar = "character"),
+  make_option(c("-x","--cpu"), type="numeric", default=10,
+              help="Number of cores [default %default]", metavar="numeric"),
   make_option(c("-o", "--output"), type="character", default=NULL,
-              help="Output file name", metavar="character")
+              help="Output file name", metavar="character"),
+  make_option(c("-i", "--irreproducible"), type="numeric", default=0, 
+              help="Seed with Sys.time() [default %default]")
 )
 
 opt_parser = OptionParser(option_list=option_list);
@@ -92,6 +98,9 @@ S <- opt$simulations
 modelSim <- opt$model
 output <- opt$output
 adonis <- opt$adonis
+cqf <- opt$QuadForm
+cores <- opt$cpu
+ir <- as.logical(opt$irreproducible)
 
 ## 1. Load packages and functions
 
@@ -145,11 +154,13 @@ if(modelSim == "simplex"){
   C <- C.gen + runif(n, -r, r)
 }
 
+if(ir){set.seed(as.numeric(Sys.time()))}
+
 ## 3. Simulate
 pv.mt <- c()
 for (i in 1:S){
   
-  set.seed(i)
+  if(!ir){set.seed(i)}
   
   if (modelSim == "simplex") {
 
@@ -197,10 +208,17 @@ for (i in 1:S){
   } else {
     stop(sprintf("Unknown option: transf = '%s'.", transf))
   }
-  
+
   if (adonis != 0){
     library(vegan)
-    ADONIS <- adonis(dist(Y) ~ C + A, permutations = adonis)$aov.tab[,6][1:3]
+    if(delta != 0){ # This should be commented if you want to generate B under H1 and eval the p-values
+      if(w != "B"){stop("Factor under H1 should be B!")}
+      perm <- how(nperm = adonis)
+      setBlocks(perm) <- B
+      ADONIS <- adonis(dist(Y) ~ C + A, permutations = perm, parallel = cores)$aov.tab[,6][1:3]
+    } else {
+      ADONIS <- adonis(dist(Y) ~ C + A, permutations = adonis, parallel = cores)$aov.tab[,6][1:3]
+    }
   }  
   
   # lm and residuals
@@ -225,10 +243,39 @@ for (i in 1:S){
   
   # eigendecomposition and pv calculation
   e <- eigen(cov(R)*(n-1)/df.e, symmetric = T, only.values = T)$values
-  pv.acc <- mapply(pv.f, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
+  
+  # CompQuadForm options
+  
+  if(cqf == "davies-F"){
+    pv.acc <- mapply(pv.f, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
+  } else if (cqf == "imhof-F"){
+    pv.acc <- mapply(pv.f.imhof, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
+    # } else if (cqf == "farebrother-F"){
+    # pv.acc <- mapply(pv.f.farebrother, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e))
+  } else if (cqf == "davies-SS"){
+    ss <- unlist(SS)
+    pv.acc <- mapply(pv.ss, ss = ss, df.i = Df, MoreArgs = list(lambda = e))
+  } else if (cqf == "imhof-SS"){
+    ss <- unlist(SS)
+    pv.acc <- mapply(pv.ss.imhof, ss = ss, df.i = Df, MoreArgs = list(lambda = e))
+  } else if (cqf == "farebrother-SS"){
+    ss <- unlist(SS)
+    pv.acc <- mapply(pv.ss.farebrother, ss = ss, df.i = Df, MoreArgs = list(lambda = e))
+  } else if ( cqf == "bm"){
+    ss <- unlist(SS)
+    pv.acc <- cbind(mapply(pv.f, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e)),
+                    # mapply(pv.f.imhof, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e)),
+                    # mapply(pv.f.farebrother, f = f, df.i = Df, MoreArgs = list(df.e = df.e, lambda = e)),
+                    mapply(pv.ss, ss = ss, df.i = Df, MoreArgs = list(lambda = e)),
+                    # mapply(pv.ss.imhof, ss = ss, df.i = Df, MoreArgs = list(lambda = e)),
+                    mapply(pv.ss.farebrother, ss = ss, df.i = Df, MoreArgs = list(lambda = e)))
+    pv.acc <- cbind(t(pv.acc[1,]), t(pv.acc[3,])) # When benchmarking these, think that X_manova is labelled wrong
+  } else {
+    stop("Unknown method to compute quadratic form.")
+  }
+  
   MANOVA <- tryCatch({summary(manova(fit))$stats[,6][1:2]}, 
                      error = function(e){return(rep(NA, 3))}) # MANOVA added for comparison, it may fail with lin. dep. variables
-  pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
   
   if (adonis==0){
     pv.mt <- rbind(pv.mt, c(pv.acc[1,], MANOVA)) 
@@ -248,7 +295,7 @@ if(modelSim == "mvnorm"){
   params <- c(a, C_mean, C_var, n, u, q, delta, mean(rc), hk, loc, lambda, transf)
 }
 
-if (S == 1 && adonis != 0){
+if (S == 1){
   result2write <- pv.mt
 } else {
   result2write <- colMeans(pv.mt < 0.05)

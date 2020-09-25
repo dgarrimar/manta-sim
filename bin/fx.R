@@ -57,7 +57,7 @@ step2distance <- function (p, q, step) { # Step, distance and H1 point
 }
 
 pv.f <- function(f, lambda, df.i, df.e, acc = 1e-14){
-  
+  start <- Sys.time()
   pv.davies <- function(f, lambda, df.i, df.e, lim = 50000, acc = 1e-14){
     H <- c(rep(df.i, length(lambda)), rep(df.e, length(lambda)))
     pv <- suppressWarnings(davies(0, lambda = c(lambda, -f * lambda), h = H, lim = lim, acc = acc))
@@ -76,7 +76,145 @@ pv.f <- function(f, lambda, df.i, df.e, acc = 1e-14){
   if (pv < acc) {
     pv <- acc
   }
-  return(c(pv, acc))
+  end <- Sys.time()
+  time <- end - start
+  return(c(pv, acc, time))
+}
+
+pv.ss <- function(ss, lambda, df.i, acc = 1e-14){
+  start <- Sys.time()
+  pv.davies <- function(ss, lambda, df.i, lim = 50000, acc = 1e-14){
+    H <- rep(df.i, length(lambda))
+    pv <- suppressWarnings(davies(ss, lambda = lambda, h = H, lim = lim, acc = acc))
+    if(pv$ifault != 0 || pv$Qq < 0 || pv$Qq > 1){
+      return(pv)
+    } else {
+      return(pv$Qq)
+    }
+  }
+  
+  pv <- pv.davies(ss = ss, lambda = lambda, df.i = df.i, acc = acc)
+  while (length(pv) > 1) {
+    acc <- acc * 10
+    pv <- pv.davies(ss = ss, lambda = lambda, df.i = df.i, acc = acc)
+  }
+  if (pv < acc) {
+    pv <- acc
+  }
+  end <- Sys.time()
+  time <- end - start
+  return(c(pv, acc, time))
+}
+
+pv.f.imhof <- function(f, lambda, df.i, df.e, acc = 1e-14){
+  start <- Sys.time()
+  pv.imhof <- function(f, lambda, df.i, df.e, lim = 50000, acc = 1e-14){
+    H <- c(rep(df.i, length(lambda)), rep(df.e, length(lambda)))
+    pv <- suppressWarnings(imhof(0, lambda = c(lambda, -f * lambda), h = H, lim = lim, epsabs = acc))
+    if(pv$Qq < 0 || pv$Qq > 1){
+      return(pv)
+    } else {
+      return(pv$Qq)
+    }
+  }
+  start <- Sys.time()
+  pv <- pv.imhof(f = f, lambda = lambda, df.i = df.i, df.e = df.e, acc = acc)
+  while (length(pv) > 1) {
+    acc <- acc * 10
+    pv  <- pv.imhof(f = f, lambda = lambda, df.i = df.i, df.e = df.e, acc = acc)
+  }
+  if (pv < acc) {
+    pv <- acc
+  }
+  end <- Sys.time()
+  time <- end - start
+  return(c(pv, acc, time))
+}
+
+pv.ss.imhof <- function(ss, lambda, df.i, df.e, acc = 1e-14){
+  start <- Sys.time()
+  pv.imhof <- function(ss, lambda, df.i, lim = 50000, acc = 1e-14){
+    H <- rep(df.i, length(lambda))
+    pv <- suppressWarnings(imhof(ss, lambda = lambda, h = H, lim = lim, epsabs = acc))
+    if(pv$Qq < 0 || pv$Qq > 1){
+      return(pv)
+    } else {
+      return(pv$Qq)
+    }
+  }
+  start <- Sys.time()
+  pv <- pv.imhof(ss = ss, lambda = lambda, df.i = df.i,acc = acc)
+  while (length(pv) > 1) {
+    acc <- acc * 10
+    pv  <- pv.imhof(ss = ss, lambda = lambda, df.i = df.i, acc = acc)
+  }
+  if (pv < acc) {
+    pv <- acc
+  }
+  end <- Sys.time()
+  time <- end - start
+  return(c(pv, acc, time))
+}
+
+pv.f.farebrother <- function(f, lambda, df.i, df.e, acc = 1e-14){
+  start <- Sys.time()
+  pv.farebrother <- function(f, lambda, df.i, df.e, lim = 100000, acc = 1e-14){
+    H <- c(rep(df.i, length(lambda)), rep(df.e, length(lambda)))
+    pv <- suppressWarnings(farebrother(0, lambda = c(lambda, -f * lambda), h = H, maxit = lim, eps = acc))
+    if(pv$ifault != 0 || pv$Qq < 0 || pv$Qq > 1){
+      return(pv)
+    } else {
+      return(pv$Qq)
+    }
+  }
+  pv <- pv.farebrother(f = f, lambda = lambda, df.i = df.i, df.e = df.e, acc = acc)
+  while (length(pv) > 1) {
+    acc <- acc * 10
+    pv  <- pv.farebrother(f = f, lambda = lambda, df.i = df.i, df.e = df.e, acc = acc)
+  }
+  if (pv < acc) {
+    pv <- acc
+  }
+  end <- Sys.time()
+  time <- end - start
+  return(c(pv, acc, time))
+}
+
+pv.ss.farebrother <- function(ss, lambda, df.i, acc = 1e-14){
+  start.acc <- acc
+  lambda <- lambda[lambda/sum(lambda) > 1e-3]
+  pv.farebrother <- function(ss, lambda, df.i, lim = 100000, acc = 1e-14){
+    H <- rep(df.i, length(lambda))
+    pv <- farebrother(ss, lambda = lambda, h = H, maxit = lim, eps = acc)
+    if(pv$ifault %in% c(0,4) && pv$Qq >= 0 && pv$Qq <= 1){
+      return(pv$Qq)
+    } else if (pv$ifault == 9){
+      return(pv)
+    } else {
+      print(pv)
+      stop ("Some ifault or Qq above 1 / below 0!")
+    }
+  }
+  start <- Sys.time()
+  pv <- pv.farebrother(ss = ss, lambda = lambda, df.i = df.i, acc = acc)
+  end <- Sys.time()
+  
+  time <- as.numeric(difftime(end, start, units = "secs"))
+  if(time > 60) {stop(sprintf("Sloooow: %.2f secs", time))}
+  
+  while (length(pv) > 1) {
+    acc <- acc * 10
+    if(acc > 1e-8){
+      print(pv)
+      stop("Accuracy requested > 1e-8")
+    }
+    pv  <- pv.farebrother(ss = ss, lambda = lambda, df.i = df.i, acc = acc)
+  }
+  if (pv < start.acc) {
+    pv <- start.acc
+  }
+ 
+  return(c(pv, acc, time))
 }
 
 label <- function(a, b, n, u = 1, w = "B", plot = F, seed = 123) { # Get levels of the factors with unbalance u

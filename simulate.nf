@@ -27,6 +27,8 @@ params.sim = 10000
 params.delta = 0
 params.hk = 1
 params.adonis = 0
+params.cqf = "davies-F"
+params.ir = 0
 
 // Generation: multivariate normal
 params.y_var = 'equal'
@@ -72,9 +74,11 @@ if (params.help) {
   log.info ' --model MODEL               R script with model definition (default: Y~A+B+AB.R)'
   log.info ' --gen GENERATION            data generation: mvnorm, simplex, multinom or copula (default: mvnorm)'
   log.info ' --sim SIMULATIONS           number of simulations (default: 10000)'
+  log.info ' --ir IRREPRODUCIBLE         should random seed be set to Sys.time() (default: 0)'
   log.info ' --delta DELTA               change in H1 (default: 0.1)'
   log.info ' --hk HETEROSKEDASTICITY     heteroskedasticity, 1 is homoskedastic (default: 1)'
   log.info ' --adonis PERMUTATIONS       should permutation test be performed? Specify number of permutations (default: 0)'
+  log.info ' --cqf CompQuadForm          method employed to compute the quadratic form (default: davies-F)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
@@ -122,9 +126,11 @@ log.info "Which factor changes in H1   : ${params.which}"
 log.info "Model definition             : ${params.model}"
 log.info "Data generation              : ${params.gen}"
 log.info "Number of simulations        : ${params.sim}"
+log.info "Irreproducible               : ${params.ir}"
 log.info "Change in H1 (delta)         : ${params.delta}"
 log.info "Heteroskedasticity           : ${params.hk}"
 log.info "Adonis permutation test      : ${params.adonis}"
+log.info "CompQuadForm                 : ${params.cqf}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
@@ -136,7 +142,7 @@ if(params.gen == 'mvnorm'){
 } else if (params.gen == 'copula'){
   log.info 'Additional parameters'
   log.info '---------------------'
-  log.info "Variance of Y variables	 : ${params.y_var}"
+  log.info "Variance of Y variables      : ${params.y_var}"
   log.info "Correlation of Y variables   : ${params.y_cor}"
   log.info "Distribution definition      : ${params.c_dist}"
 } else if (params.gen == 'simplex'){
@@ -219,7 +225,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -m ${params.gen} -t $t -w ${params.which} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -i ${params.ir} -m ${params.gen} -t $t -w ${params.which} -Q ${params.cqf} -o sim.txt
     """
 }
 
