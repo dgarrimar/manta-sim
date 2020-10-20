@@ -24,6 +24,7 @@ params.m = 'none'
 params.hs2 = 0 
 params.hg2 = 0
 params.t = 'none'
+params.scale = false
 params.k = 20
 params.c = 10
 
@@ -52,6 +53,7 @@ if (params.help) {
   log.info ' --hs2 SNP HERITABILITY      average fraction of variance explained by causal variants across traits (default: 0)'
   log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0)'
   log.info ' --t TRANSFORM               transformation of response variables: none, PCA, GAMMA (default: none)'
+  log.info ' --scale SCALE               [BETA] scale the response variables for MLM (default: false)'
   log.info ' --k NUMBER PC               Number of PCs used when transformation = PCA (default: 20)'
   log.info ' --c NUMBER CHUNKS           Number of chunks (default: 10)'
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
@@ -80,6 +82,7 @@ log.info "Multiple testing correction  : ${params.m}"
 log.info "Causal variant heritability  : ${params.hs2}"
 log.info "Relatedness heritability     : ${params.hg2}"
 log.info "Transformation               : ${params.t}"
+log.info "Scale responses [BETA]       : ${params.scale}"
 log.info "Number of PCs                : ${params.k}"
 log.info "Number of chunks             : ${params.c}"
 log.info "Output directory             : ${params.dir}"
@@ -257,6 +260,7 @@ process simulate_test {
     if(grid.t instanceof List) {
        single = grid.t[0]
     }
+    if(params.scale == true){scale = "--scale"} else {scale = ""}
     """ 
     # Manage chunks
     start=\$(( ($c-1)*(${params.p}/${params.c}) + 1 ))
@@ -284,7 +288,7 @@ process simulate_test {
        else
           touch VC.txt
        fi
-       mlm.R -p pheno.txt -g geno -t $t -c $eigenval -n ${params.k} -k $kinship -v VC.txt --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt --scale
+       mlm.R -p pheno.txt -g geno -t $t -c $eigenval -n ${params.k} -k $kinship -v VC.txt --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale
     done
     cat mlm_*.assoc.txt > mlm.assoc.txt
     cat manova_*.assoc.txt > manova.assoc.txt
