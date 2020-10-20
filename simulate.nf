@@ -235,7 +235,7 @@ if("PCA" in grid.t) {
 
 process simulate_test {
 
-    tag { par }
+    tag { "$par|$t" }
 
     input:
     tuple id,n,q,PTgen,GTgen,hs2,hg2,file(bed),file(bim),file(fam),file(kinship),file(eigenval) from gt2pt_ch
@@ -264,9 +264,9 @@ process simulate_test {
  
     for (( v=\$start; v<=(\$end); v++ )); do
        # Extract single variant
-       sed -n \${v}p $bim | cut -f2 > variant.txt    
-       plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract variant.txt --out geno --make-bed   
-   
+       sed -n \${v}p $bim | awk '{print \$1"\t"\$4-1"\t"\$4}' > variant.bed
+       plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed
+ 
        # Simulate phenotype
        simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
     
