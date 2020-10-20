@@ -126,8 +126,13 @@ G <- G / sqrt(mean(diag(cov(G)))) * sqrt(hg2) # Rescale
 
 B <- matrix(rnorm(q^2), q, q)
 BBT <- tcrossprod(B)
-E <- cop(n, BBT, PTgen)
-   
+
+if(PTGen == 'norm-0-1'){
+    E <- mvrnorm(n = n, mu = rep(0, q), Sigma = BBT) 
+} else {
+    E <- cop(n, BBT, PTgen)
+}
+
 E <- E / sqrt(mean(diag(cov(E)))) * sqrt( (1-hs2-hg2) ) # Rescale
    
 ## 4. Build Y
