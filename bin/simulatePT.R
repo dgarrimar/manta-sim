@@ -105,22 +105,19 @@ if (hs2 != 0){
   XB <- X %*% B 
   XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) # Rescale
 
-} else {
-  
-  XB <- matrix(0, n, q)
-
-}
+} 
   
 ## 2. Relatedness signal 
 
-# Kinship 
-Rg <- as.matrix(fread(kinship, data.table = FALSE, sep = "\t"))
-     
-# Shared genotype effect
-A <- matrix(rnorm(q^2), q, q)
-AAT <- tcrossprod(A)
-G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = AAT) 
-G <- G / sqrt(mean(diag(cov(G)))) * sqrt(hg2) # Rescale
+if (hg2 != 0){
+    # Kinship 
+    Rg <- as.matrix(fread(kinship, data.table = FALSE, sep = "\t")) 
+    # Shared genotype effect
+    A <- matrix(rnorm(q^2), q, q)
+    AAT <- tcrossprod(A)
+    G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = AAT) 
+    G <- G / sqrt(mean(diag(cov(G)))) * sqrt(hg2) # Rescale
+} 
 
 ## 3. Residuals
 
@@ -136,9 +133,15 @@ if(PTGen == 'norm-0-1'){
 E <- E / sqrt(mean(diag(cov(E)))) * sqrt( (1-hs2-hg2) ) # Rescale
    
 ## 4. Build Y
+if(hs2 != 0 && hg2 != 0){
+    Y <- XB + G + E
+} else if (hs2 == 0 && hg2 != 0){
+    Y <- G + E
+} else if (hs2 != 0 && hg2 == 0){
+    Y <- XB + E
+} else if (hs2 == 0 && hg2 == 0){
+    Y <- E
+}
     
-Y <- XB + G + E
-    
-## 5. Save
-    
+## 5. Save    
 write.table(Y, file = outfile, col.names = F, row.names = F, sep = "\t")
