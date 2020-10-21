@@ -23,6 +23,7 @@ RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 # other
        wget \
        git \
+       bc \
     && apt-get clean \
     && apt-get purge \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -34,7 +35,7 @@ RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "
 RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
 
 ## Install python3 packages
-RUN pip3 install pandas
+RUN pip3 install pandas scipy
 
 ## Install python2 packages
 RUN pip install numpy scipy
@@ -74,4 +75,10 @@ RUN git clone https://github.com/michaelbilow/pylmm_zarlab \
     && sed -i 's/True -/True ^/g' pylmm/lmm.py \
     && sed -i 's/print(self.N)//' pylmm/input.py \ 
     && python setup.py install
-    
+
+## Install BOLT-LMM
+RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4.tar.gz \
+    && tar zxf BOLT-LMM_v2.3.4.tar.gz \
+    && cd BOLT-LMM_v2.3.4 \
+    && chmod +x bolt \
+    && ln -s $PWD/bolt /usr/local/bin/

@@ -15,6 +15,7 @@ parser.add_argument("-n", "--individuals", type=int, help="Number of individuals
 parser.add_argument("-b", "--blocksize", type=int, help="Number of variants per block")
 parser.add_argument("-s", "--seed", type=int, help="Seed for random processes")
 parser.add_argument("-o", "--out", type=str, help="Output VCF")
+parser.add_argument("-m", "--named", action="store_true", help="Named output VCF", default = False)
 
 if len(sys.argv)==1:
     parser.print_help()
@@ -39,6 +40,10 @@ else:
 
 # Open output VCF
 out_fh = open(args.out, 'w')
+
+# Write header
+if(args.named):
+    out_fh.write('\t'.join(['#CHROM','POS','ID','REF','ALT','QUAL','FILTER','INFO','FORMAT'] + ['S' + str(i+1) for i in range(0, n)]) + '\n')
 
 seed(args.seed)
 

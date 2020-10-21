@@ -124,7 +124,7 @@ if (hg2 != 0){
 B <- matrix(rnorm(q^2), q, q)
 BBT <- tcrossprod(B)
 
-if(PTGen == 'norm-0-1'){
+if(PTgen == 'norm-0-1'){
     E <- mvrnorm(n = n, mu = rep(0, q), Sigma = BBT) 
 } else {
     E <- cop(n, BBT, PTgen)
