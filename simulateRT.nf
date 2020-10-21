@@ -261,7 +261,7 @@ process time {
     } else if (t == "GAMMA" && n.toInteger() < 5000) {
     """
     paste <(cut -f1-2 $fam) $pheno > pheno2.txt
-    start=\$(date +%s`)
+    start=\$(date +%s)
     vc.py -b $prefix -p pheno2.txt -k $kinship -o VC.txt -v
     end=\$(date +%s)
     echo -e "$n\t$t\tvc\t\$((end-start))" > runtime.txt
