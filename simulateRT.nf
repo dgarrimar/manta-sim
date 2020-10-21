@@ -173,12 +173,12 @@ process simulateGT {
     plink2 --vcf sim.vcf --make-bed --out geno
 
     # Prune and compute PCA (assumed biallelic variants, MAF >0.05, no missing genotypes)
-    start=`date +%s`
+    start=\$(date +%s)
     plink2 --bfile geno --indep-pairwise 50 5 0.1 --out geno
     plink2 --bfile geno --extract geno.prune.in --out geno.pruned --make-bed
     if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
     plink2 --bfile geno.pruned --pca ${params.k} \$approx --out geno   
-    end=`date +%s`
+    end=\$(date +%s)
     echo -e "$n\tPCA\tpca\t\$((end-start))" > runtime.pca.txt
     """
 }
@@ -203,9 +203,9 @@ process kinship {
     """
     # Compute kinship
     sed -i 's/-9/1/' $fam    
-    start=`date +%s`
+    start=\$(date +%s)
     gemma -gk 2 -bfile $prefix -outdir . -o kinship
-    end=`date +%s`    
+    end=\$(date +%s)    
     echo -e "$n\tKINSHIP\tkinship\t\$((end-start))" > runtime.kinship.txt
     """
 }
@@ -253,17 +253,17 @@ process time {
     if(t == "GEMMA"){
     """ 
     paste <(cut -f1-5 $fam) $pheno > tmpfile; mv tmpfile $fam
-    start=`date +%s`
+    start=\$(date +%s)
     gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma.assoc.txt
-    end=`date +%s`
+    end=\$(date +%s)
     echo -e "$n\t$t\tgemma\t\$((end-start))" > runtime.txt
     """
     } else if (t == "GAMMA" && n.toInteger() < 5000) {
     """
     paste <(cut -f1-2 $fam) $pheno > pheno2.txt
-    start=`date +%s`
+    start=\$(date +%s`)
     vc.py -b $prefix -p pheno2.txt -k $kinship -o VC.txt -v
-    end=`date +%s`
+    end=\$(date +%s)
     echo -e "$n\t$t\tvc\t\$((end-start))" > runtime.txt
 
     mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime >> runtime.txt
@@ -272,14 +272,14 @@ process time {
     """
     PIDS=\$(echo $pids | sed 's/ /\\t/g')
     paste <(cut -f1-2 $fam) $pheno | sed "1 s/^/FID\\tIID\\t\$PIDS\\n/" > pheno2.txt
-    start=`date +%s`
+    start=\$(date +%s)
     for pid in {1..${params.q}}; do
         bolt --bfile $prefix --phenoFile pheno2.txt --phenoCol \$pid --reml > bolt.txt
         sigma2=\$(grep -F 'Phenotype 1 variance sigma2:' bolt.txt | sed -r 's/.*: (.+) .*/\\1/')
         h2g=\$(grep -F 'h2g (1,1):' bolt.txt | sed -r 's/.*: (.+) .*/\\1/')
         echo -e "\$(echo "\$h2g*\$sigma2" | bc -l)\\t\$(echo "(1-\$h2g)*\$sigma2" | bc -l)"
     done > VC.txt
-    end=`date +%s`
+    end=\$(date +%s)
     echo -e "$n\t$t\tvc\t\$((end-start))" > runtime.txt
     mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime >> runtime.txt
     """
