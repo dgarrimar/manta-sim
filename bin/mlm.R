@@ -102,12 +102,17 @@ if(transf == "GAMMA"){
 ## 1. Run mlm/manova
 
 t0_mlm <- Sys.time()
+p <- ncol(X)
+res <- rep(NA, p)
 if (transf != "PCA"){
-   res <- apply(X, 2, function(x){tryCatch( {mlm(Y ~ x)$aov.tab[1,6]}, 
-             error = function(e){return(NA)} ) })
+    for (snp in 1:p) {
+        res[snp] <- tryCatch( {mlm(Y ~ X[, snp])$aov.tab[1,6]}, error = function(e){return(NA)} )
+    }
 } else {
-   res <- apply(X, 2, function(x){tryCatch( {mlm(Y ~ ., data = data.frame(x, covariates))$aov.tab[1,6]},
-             error = function(e){return(NA)} ) })
+    for (snp in 1:p) {
+        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(X[, snp], covariates))$aov.tab[1,6]}, 
+                              error = function(e){return(NA)} )
+    }
 } 
 res <- cbind.data.frame(id, res)
 write.table(res, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
@@ -115,12 +120,16 @@ t1_mlm <- Sys.time()
 
 if(!is.null(opt$manova)){
     t0_manova <- Sys.time()
+    res_manova <- rep(NA, p)
     if (transf != "PCA"){
-        res_manova <- apply(X, 2, function(x){tryCatch( {summary(manova(Y ~ x))$stats[1,6]}, 
-                error = function(e){return(NA)} ) })
+        for (snp in 1:p) {
+            res_manova[snp] <- tryCatch( {summary(manova(Y ~ x))$stats[1,6]}, error = function(e){return(NA)} )
+        }
     } else {
-        res_manova <- apply(X, 2, function(x){tryCatch( {summary(manova(Y ~ ., data = data.frame(x, covariates)))$stats[1,6]},
-                error = function(e){return(NA)} )})
+        for (snp in 1:p) {
+            res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data = data.frame(X[, snp], covariates)))$stats[1,6]}, 
+                                         error = function(e){return(NA)} )
+        }
     }
     res_manova <- cbind.data.frame(id, res_manova)
     write.table(res_manova, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
