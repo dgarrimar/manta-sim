@@ -119,9 +119,9 @@ process subset {
     script:
     """
     # Thin (subset p)
-    plink2 --vcf $vcf --make-bed --out geno
-    plink2 --bfile geno --seed ${params.seed} --thin-count $params.p --make-bed --out geno.thin
-    plink2 --bfile geno.thin --export vcf --out ss     
+    plink2 --vcf $vcf --make-bed --out geno --threads 1
+    plink2 --bfile geno --seed ${params.seed} --thin-count $params.p --make-bed --out geno.thin --threads 1
+    plink2 --bfile geno.thin --export vcf --out ss --threads 1
     """
 }
 
@@ -170,14 +170,14 @@ process simulateGT {
     simulate.py -g $vcf -A ${params.A} -p $pickle -n $n -b ${params.b} -s ${params.seed} -o sim.vcf --named 
 
     # convert to PLINK format
-    plink2 --vcf sim.vcf --make-bed --out geno
+    plink2 --vcf sim.vcf --make-bed --out geno --threads 1
 
     # Prune and compute PCA (assumed biallelic variants, MAF >0.05, no missing genotypes)
     start=\$(date +%s)
-    plink2 --bfile geno --indep-pairwise 50 5 0.1 --out geno
-    plink2 --bfile geno --extract geno.prune.in --out geno.pruned --make-bed
+    plink2 --bfile geno --indep-pairwise 50 5 0.1 --out geno --threads 1
+    plink2 --bfile geno --extract geno.prune.in --out geno.pruned --make-bed --threads 1
     if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
-    plink2 --bfile geno.pruned --pca ${params.k} \$approx --out geno   
+    plink2 --bfile geno.pruned --pca ${params.k} \$approx --out geno --threads 1
     end=\$(date +%s)
     echo -e "$n\tPCA\tpca\t\$((end-start))" > runtime.pca.txt
     """

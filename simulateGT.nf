@@ -188,21 +188,21 @@ process out {
     sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
         
     # 1) convert to PLINK format
-    plink2 --vcf $simvcf --make-bed --out ${params.out}
+    plink2 --vcf $simvcf --make-bed --out ${params.out} --threads 1
         
     # 2) prune with --indep-pairwise
-    plink2 --bfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out}
-    plink2 --bfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-bed
+    plink2 --bfile ${params.out} --indep-pairwise 50 5 0.1 --out ${params.out} --threads 1
+    plink2 --bfile ${params.out} --extract ${params.out}.prune.in --out ${params.out}.pruned --make-bed --threads 1
         
     # 3) Compute PCA
     if [[ ${params.n} -ge 5000 ]]; then approx="approx"; else approx=""; fi
-    plink2 --bfile ${params.out}.pruned --pca $params.n \$approx --out ${params.out}
+    plink2 --bfile ${params.out}.pruned --pca $params.n \$approx --out ${params.out} --threads 1
     """ 
     else
     """
     ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
     sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf
-    plink2 --vcf $simvcf --make-bed --out ${params.out}    
+    plink2 --vcf $simvcf --make-bed --out ${params.out} --threads 1
     """
 }
 

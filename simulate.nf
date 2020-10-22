@@ -168,11 +168,11 @@ process prepare {
         cut -f2 ${prefix}.fam > keep.txt
     fi
 
-    plink2 --bfile $prefix --indep-pairwise 50 5 0.1 --keep keep.txt --out $GTgen
-    plink2 --bfile $prefix --extract ${GTgen}.prune.in --keep keep.txt --out ${GTgen}.pruned --make-bed
+    plink2 --bfile $prefix --indep-pairwise 50 5 0.1 --keep keep.txt --out $GTgen --threads 1
+    plink2 --bfile $prefix --extract ${GTgen}.prune.in --keep keep.txt --out ${GTgen}.pruned --make-bed --threads 1
     
     # Thin: subset n and p 
-    plink2 --bfile $prefix --seed 1 --thin-count $params.p --keep keep.txt --out ${GTgen}.thin --make-bed    
+    plink2 --bfile $prefix --seed 1 --thin-count $params.p --keep keep.txt --out ${GTgen}.thin --make-bed --threads 1
     """
 }
 
@@ -220,7 +220,7 @@ if("PCA" in grid.t) {
         """
         # Compute PCs using all variants
         if [[ \$(wc -l $fam | cut -d' ' -f2) -ge 5000 ]]; then approx="approx"; else approx=""; fi
-        plink2 --bfile ${GTgen}.pruned --pca ${params.k} \$approx --out ${GTgen}
+        plink2 --bfile ${GTgen}.pruned --pca ${params.k} \$approx --out ${GTgen} --threads 1
         """
     }
 
@@ -269,7 +269,7 @@ process simulate_test {
     for (( v=\$start; v<=(\$end); v++ )); do
        # Extract single variant
        sed -n \${v}p $bim | awk '{print \$1"\t"\$4-1"\t"\$4}' > variant.bed
-       plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed
+       plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed --threads 1
  
        # Simulate phenotype
        simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
