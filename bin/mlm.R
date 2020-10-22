@@ -100,6 +100,9 @@ if(transf == "GAMMA"){
 }
 
 ## 1. Run mlm/manova
+if(opt$scale){
+    Y <- scale(Y)
+}
 
 t0_mlm <- Sys.time()
 p <- ncol(X)
