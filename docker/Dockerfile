@@ -31,9 +31,6 @@ RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 ## Install R packages
 RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula"), repos="http://cloud.r-project.org/")'
 
-## Install mlm
-RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
-
 ## Install python3 packages
 RUN pip3 install pandas scipy
 
@@ -82,3 +79,7 @@ RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM
     && cd BOLT-LMM_v2.3.4 \
     && chmod +x bolt \
     && ln -s $PWD/bolt /usr/local/bin/
+
+## Install mlm
+RUN R -e 'devtools:::install_github("dgarrimar/mlm", ref = "70ecf39d1d730c3ff3280dccb52ff959ddcb7c70")'
+

@@ -109,11 +109,11 @@ p <- ncol(X)
 res <- rep(NA, p)
 if (transf != "PCA"){
     for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ X[, snp])$aov.tab[1,6]}, error = function(e){return(NA)} )
+        res[snp] <- tryCatch( {mlm(Y ~ X[, snp], type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
     }
 } else {
     for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(X[, snp], covariates))$aov.tab[1,6]}, 
+        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(X[, snp], covariates), type = "I", subset = "snp")$aov.tab[1,6]}, 
                               error = function(e){return(NA)} )
     }
 } 
