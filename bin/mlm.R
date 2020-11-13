@@ -31,7 +31,9 @@ option_list = list(
   make_option(c("--scale"), type="character", action = "store_true", default = FALSE,
               help="Scale response variables [default %default]", metavar="logical"),
   make_option(c("--runtime"), type="character", action = "store_true", default = FALSE,
-              help="Report running time for each analysis step [default %default]", metavar="logical")
+              help="Report running time for each analysis step [default %default]", metavar="logical"),
+  make_option(c("-i", "--id_replicate"), type="numeric", default=1, 
+              help="Replicate id (used if --runtime)", metavar="numeric")
   )
 
 opt_parser <- OptionParser(option_list=option_list)
@@ -142,23 +144,24 @@ if(!is.null(opt$manova)){
 # Runtime
 if (opt$runtime){
     N <- nrow(Y)
+    R <- opt$id_replicate
     t_readXY <- as.numeric(difftime(t1_readXY, t0_readXY, units = "secs"))
-    cat(sprintf("%s\t%s\tread_XY\t%s\n", N, transf, round(t_readXY)))
+    cat(sprintf("%s\t%s\t%s\tread_XY\t%s\n", N, R, transf, round(t_readXY)))
     t_maf <- as.numeric(difftime(t1_maf, t0_maf, units = "secs"))
-    cat(sprintf("%s\t%s\tmaf\t%s\n", N, transf, round(t_maf)))
+    cat(sprintf("%s\t%s\t%s\tmaf\t%s\n", N, R, transf, round(t_maf)))
     if(transf == "GAMMA"){
         t_readRg <- as.numeric(difftime(t1_readRg, t0_readRg, units = "secs"))
-        cat(sprintf("%s\t%s\tread_kinship\t%s\n", N, transf, round(t_readRg)))
+        cat(sprintf("%s\t%s\t%s\tread_kinship\t%s\n", N, R, transf, round(t_readRg)))
         t_GAMMA <- as.numeric(difftime(t1_GAMMA, t0_GAMMA, units = "secs"))
-        cat(sprintf("%s\t%s\tGAMMA\t%s\n", N, transf, round(t_GAMMA)))
+        cat(sprintf("%s\t%s\t%s\tGAMMA\t%s\n", N, R, transf, round(t_GAMMA)))
     } else if (transf == "PCA"){
         t_cov <- as.numeric(difftime(t1_cov, t0_cov, units = "secs"))
-        cat(sprintf("%s\t%s\tcov\t%s\n", N, transf, round(t_cov)))
+        cat(sprintf("%s\t%s\t%s\tcov\t%s\n", N, R, transf, round(t_cov)))
     }
     t_mlm <- as.numeric(difftime(t1_mlm, t0_mlm, units = "secs"))
-    cat(sprintf("%s\t%s\tmlm\t%s\n", N, transf, round(t_mlm)))
+    cat(sprintf("%s\t%s\t%s\tmlm\t%s\n", N, R, transf, round(t_mlm)))
     if(!is.null(opt$manova)){
         t_manova <- as.numeric(difftime(t1_manova, t0_manova, units = "secs"))
-        cat(sprintf("%s\t%s\tmanova\t%s\n", N, transf, round(t_manova)))
+        cat(sprintf("%s\t%s\t%s\tmanova\t%s\n", N, R, transf, round(t_manova)))
     }
 }

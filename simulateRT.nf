@@ -21,6 +21,7 @@ params.k = 20
 params.hs2 = 0 
 params.hg2 = 0.2
 params.seed = 123
+params.r = 1
 params.help = false
 
 /*
@@ -44,11 +45,11 @@ if (params.help) {
   log.info ' --p VARIANTS                number of variants to test (default: 10000)'
   log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
   log.info ' --A ANCESTORS               number of ancestors (default: 10)'
-  log.info ' --k NUMBER PC               Number of PCs used to correct population stratification (default: 20)'
+  log.info ' --k NUMBER PC               number of PCs used to correct population stratification (default: 20)'
   log.info ' --hs2 SNP HERITABILITY      average fraction of variance explained by causal variants across traits (default: 0)'
   log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0)'
-
   log.info ' --s SEED                    seed (default: 123)'
+  log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
   log.info ' --out OUTPUT                output file prefix (default: simulated)'
   log.info ''
@@ -72,6 +73,7 @@ log.info "No. of ancestors             : ${params.A}"
 log.info "No. of PCs                   : ${params.k}"
 log.info "Causal variant heritability  : ${params.hs2}"
 log.info "Relatedness heritability     : ${params.hg2}"
+log.info "Replicate number             : ${params.r}"
 log.info "Seed                         : ${params.seed}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
@@ -133,8 +135,6 @@ process generate {
 
     tag { n }
 
-    label 'high_mem'
-
     input:
     file(meta) from file(params.metadata)
     each n from n_ch
@@ -155,15 +155,16 @@ process generate {
 
 process simulateGT {
 
-    tag { n }
+    tag { "$n,$r" }
 
     input:
+    each r from Channel.from(1..params.r)
     file(vcf) from ssvcf_ch
-    tuple val(n),file(pickle) from pickle_ch
+    tuple val(n), file(pickle) from pickle_ch
 
     output:
-    tuple val(n), val("geno"), file ("geno.bed"), file("geno.bim"), file("geno.fam"), file("geno.eigenvec") into gt_ch
-    file("runtime.pca.txt") into runtime_pca_ch
+    tuple val(n), val(r), val("geno"), file ("geno.bed"), file("geno.bim"), file("geno.fam"), file("geno.eigenvec") into gt_ch
+    file("runtime.pca.txt") into runtime_pca_chv
 
     script:
     """
@@ -179,10 +180,11 @@ process simulateGT {
     if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
     plink2 --bfile geno.pruned --pca ${params.k} \$approx --out geno --threads 1
     end=\$(date +%s)
-    echo -e "$n\tPCA\tpca\t\$((end-start))" > runtime.pca.txt
+    echo -e "$n\t$r\tPCA\tpca\t\$((end-start))" > runtime.pca.txt
     """
 }
 
+runtime_pca_chv.view().set{runtime_pca_ch}
 
 /*  
  *  Compute kinship
@@ -190,13 +192,13 @@ process simulateGT {
 
 process kinship {
 
-    tag { n }
+    tag { "$n,$r" }
 
     input:
-    tuple n, prefix, file(bed),file(bim),file(fam),file(pcs) from gt_ch
+    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs) from gt_ch
  
     output:
-    tuple n, prefix, file(bed),file(bim),file(fam),file(pcs),file("kinship.sXX.txt") into gt2pt_ch
+    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file("kinship.sXX.txt") into gt2pt_ch
     file('runtime.kinship.txt') into runtime_kinship_ch
 
     script:
@@ -206,7 +208,8 @@ process kinship {
     start=\$(date +%s)
     gemma -gk 2 -bfile $prefix -outdir . -o kinship
     end=\$(date +%s)    
-    echo -e "$n\tKINSHIP\tkinship\t\$((end-start))" > runtime.kinship.txt
+    echo -e "$n\t$r\tGEMMA\tkinship\t\$((end-start))" > runtime.kinship.txt
+    echo -e "$n\t$r\tGAMMA\tkinship\t\$((end-start))" >> runtime.kinship.txt
     """
 }
 
@@ -216,13 +219,13 @@ process kinship {
 
 process simulatePT {
 
-    tag { n }
+    tag { "$n,$r" }
 
     input:
-    tuple n, prefix, file(bed),file(bim),file(fam),file(pcs),file(kinship) from gt2pt_ch
+    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship) from gt2pt_ch
    
     output:
-    tuple val(n), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file('pheno.txt') into totime_ch
+    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file('pheno.txt') into totime_ch
 
     script:
     """ 
@@ -231,18 +234,16 @@ process simulatePT {
     """
 }
 
-totime_ch.set{totime_ch2}
-
 /*
  *  Timing
  */
 
 process time {
 
-    tag { "$t $n" }
+    tag { "$t $n,$r" }
 
     input:
-    tuple n, prefix, file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch2
+    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
     each t from Channel.fromList(["GEMMA","GAMMA","PCA"])
    
     output:
@@ -256,7 +257,7 @@ process time {
     start=\$(date +%s)
     gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma.assoc.txt
     end=\$(date +%s)
-    echo -e "$n\t$t\tgemma\t\$((end-start))" > runtime.txt
+    echo -e "$n\t$r\t$t\tgemma\t\$((end-start))" > runtime.txt
     """
     } else if (t == "GAMMA" && n.toInteger() < 5000) {
     """
@@ -264,9 +265,9 @@ process time {
     start=\$(date +%s)
     vc.py -b $prefix -p pheno2.txt -k $kinship -o VC.txt -v
     end=\$(date +%s)
-    echo -e "$n\t$t\tvc\t\$((end-start))" > runtime.txt
+    echo -e "$n\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
 
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime >> runtime.txt
+    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r >> runtime.txt
     """
     } else if (t == "GAMMA" && n.toInteger() >= 5000) {
     """
@@ -280,13 +281,13 @@ process time {
         echo -e "\$(echo "\$h2g*\$sigma2" | bc -l)\\t\$(echo "(1-\$h2g)*\$sigma2" | bc -l)"
     done > VC.txt
     end=\$(date +%s)
-    echo -e "$n\t$t\tvc\t\$((end-start))" > runtime.txt
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime >> runtime.txt
+    echo -e "$n\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
+    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r >> runtime.txt
     """
     } else if (t == "PCA") {
     """
     touch VC.txt
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime > runtime.txt
+    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
     """
     }
 }
@@ -305,7 +306,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tmethod\tstep\truntime\\n/" $runtimes
+   sed -i "1 s/^/n\tr\tmethod\tstep\truntime\\n/" $runtimes
    """
 }
 
