@@ -164,7 +164,7 @@ process simulateGT {
 
     output:
     tuple val(n), val(r), val("geno"), file ("geno.bed"), file("geno.bim"), file("geno.fam"), file("geno.eigenvec") into gt_ch
-    file("runtime.pca.txt") into runtime_pca_chv
+    file("runtime.pca.txt") into runtime_pca_ch
 
     script:
     """
@@ -183,8 +183,6 @@ process simulateGT {
     echo -e "$n\t$r\tPCA\tpca\t\$((end-start))" > runtime.pca.txt
     """
 }
-
-runtime_pca_chv.view().set{runtime_pca_ch}
 
 /*  
  *  Compute kinship
