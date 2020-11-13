@@ -206,6 +206,8 @@ process kinship {
 
     tag { "n:$n,r:$r" }
 
+    label "high_mem"
+
     input:
     tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs) from gt_ch
  
@@ -237,6 +239,8 @@ process simulatePT {
 
     tag { "n:$n,q:$q,r:$r" }
 
+    label 'high_mem'
+
     input:
     each q from q_ch
     tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship) from gt2pt_ch
@@ -258,6 +262,8 @@ process simulatePT {
 process time {
 
     tag { "$t n:$n,q:$q,r:$r" }
+  
+    label 'high_mem'
 
     input:
     tuple val(n), val(q), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
