@@ -97,6 +97,11 @@ if( params.p % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.p, params.b)
 } 
 
+// Check we iterate either over n or over q
+//if (params['n'] =~ /,/ && params['q'] =~ /,/){
+//   exit 1, "Provide multiple values EITHER for n or q"
+//} 
+
 // Expand n (allow k for thousands)
 if (params['n'] =~ /,/){
     Channel.fromList(params['n'].replaceAll("k", "000").tokenize(',')).set{n_ch}
@@ -104,6 +109,12 @@ if (params['n'] =~ /,/){
     Channel.of(params['n'].toString().replaceAll("k", "000")).set{n_ch}
 }
 
+// Expand q
+if (params['q'] =~ /,/){
+    Channel.fromList(params['q'].tokenize(',')).set{q_ch}
+} else {
+    Channel.of(params['q']).set{q_ch}
+}
 
 /* 
  *  Subset
@@ -133,7 +144,7 @@ process subset {
 
 process generate {
 
-    tag { n }
+    tag { "n:$n" }
 
     input:
     file(meta) from file(params.metadata)
@@ -155,7 +166,7 @@ process generate {
 
 process simulateGT {
 
-    tag { "$n,$r" }
+    tag { "n:$n,r:$r" }
 
     input:
     each r from Channel.from(1..params.r)
@@ -180,7 +191,10 @@ process simulateGT {
     if [[ $n -ge 5000 ]]; then approx="approx"; else approx=""; fi
     plink2 --bfile geno.pruned --pca ${params.k} \$approx --out geno --threads 1
     end=\$(date +%s)
-    echo -e "$n\t$r\tPCA\tpca\t\$((end-start))" > runtime.pca.txt
+    touch runtime.pca.txt
+    for q in {${params.q},}; do
+        echo -e "$n\t\$q\t$r\tPCA\tpca\t\$((end-start))" >> runtime.pca.txt
+    done
     """
 }
 
@@ -190,7 +204,7 @@ process simulateGT {
 
 process kinship {
 
-    tag { "$n,$r" }
+    tag { "n:$n,r:$r" }
 
     input:
     tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs) from gt_ch
@@ -205,9 +219,13 @@ process kinship {
     sed -i 's/-9/1/' $fam    
     start=\$(date +%s)
     gemma -gk 2 -bfile $prefix -outdir . -o kinship
-    end=\$(date +%s)    
-    echo -e "$n\t$r\tGEMMA\tkinship\t\$((end-start))" > runtime.kinship.txt
-    echo -e "$n\t$r\tGAMMA\tkinship\t\$((end-start))" >> runtime.kinship.txt
+    end=\$(date +%s)
+    touch runtime.kinship
+    for q in {${params.q},}; do
+        for m in {GEMMA,GAMMA}; do
+            echo -e "$n\t\$q\t$r\t\$m\tkinship\t\$((end-start))" >> runtime.kinship.txt
+        done
+    done 
     """
 }
 
@@ -217,18 +235,19 @@ process kinship {
 
 process simulatePT {
 
-    tag { "$n,$r" }
+    tag { "n:$n,q:$q,r:$r" }
 
     input:
+    each q from q_ch
     tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship) from gt2pt_ch
    
     output:
-    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file('pheno.txt') into totime_ch
+    tuple val(n), val(q), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file('pheno.txt') into totime_ch
 
     script:
     """ 
     # Simulate phenotype
-    simulatePT.R -s ${params.seed} -n $n -q ${params.q} --geno $prefix --kinship $kinship --hs2 ${params.hs2} --hg2 ${params.hg2} -o pheno.txt 
+    simulatePT.R -s ${params.seed} -n $n -q $q --geno $prefix --kinship $kinship --hs2 ${params.hs2} --hg2 ${params.hg2} -o pheno.txt 
     """
 }
 
@@ -238,24 +257,24 @@ process simulatePT {
 
 process time {
 
-    tag { "$t $n,$r" }
+    tag { "$t n:$n,q:$q,r:$r" }
 
     input:
-    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
+    tuple val(n), val(q), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
     each t from Channel.fromList(["GEMMA","GAMMA","PCA"])
    
     output:
     file("runtime.txt") into out_ch
 
     script:
-    pids = (1..params.q.toInteger()).join(' ')
+    pids = (1..q.toInteger()).join(' ')
     if(t == "GEMMA"){
     """ 
     paste <(cut -f1-5 $fam) $pheno > tmpfile; mv tmpfile $fam
     start=\$(date +%s)
     gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma.assoc.txt
     end=\$(date +%s)
-    echo -e "$n\t$r\t$t\tgemma\t\$((end-start))" > runtime.txt
+    echo -e "$n\t$q\t$r\t$t\tgemma\t\$((end-start))" > runtime.txt
     """
     } else if (t == "GAMMA" && n.toInteger() < 5000) {
     """
@@ -263,7 +282,7 @@ process time {
     start=\$(date +%s)
     vc.py -b $prefix -p pheno2.txt -k $kinship -o VC.txt -v
     end=\$(date +%s)
-    echo -e "$n\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
+    echo -e "$n\t$q\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
 
     mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r >> runtime.txt
     """
@@ -279,7 +298,7 @@ process time {
         echo -e "\$(echo "\$h2g*\$sigma2" | bc -l)\\t\$(echo "(1-\$h2g)*\$sigma2" | bc -l)"
     done > VC.txt
     end=\$(date +%s)
-    echo -e "$n\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
+    echo -e "$n\t$q\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
     mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r >> runtime.txt
     """
     } else if (t == "PCA") {
@@ -304,7 +323,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tr\tmethod\tstep\truntime\\n/" $runtimes
+   sed -i "1 s/^/n\tq\tr\tmethod\tstep\truntime\\n/" $runtimes
    """
 }
 
