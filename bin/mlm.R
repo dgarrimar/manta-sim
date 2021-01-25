@@ -14,10 +14,6 @@ option_list = list(
               help="phenotype data obtained by simulatePT.R", metavar="character"),
   make_option(c("-g","--geno"), type="character", 
               help="genotype data obtained by simulateGT.nf", metavar="character"),
-  make_option(c("-k","--kinship"), type="character", 
-              help="kinship matrix obtained by simulateGT.nf", metavar="character"),
-  make_option(c("-v", "--vc"), type="character", 
-              help="Variance components computed by GEMMA", metavar="character"),
   make_option(c("-c", "--covariates"), type="character", 
               help="Covariates (genotype PCs computed by plink2)", metavar="character"),
   make_option(c("-n", "--number"), type="numeric", default=20,
@@ -66,33 +62,7 @@ t1_maf = Sys.time()
 transf <- opt$t
 covariate_file <- opt$covariates
 
-if(transf == "GAMMA"){
-    t0_readRg <- Sys.time()
-    Rg <- fread(opt$kinship, data.table = F)
-    t1_readRg <- Sys.time()
-  
-    t0_GAMMA = Sys.time()
-    vc <- colMeans(read.table(opt$vc))
-
-    # GAMMA functions
-    eigen_solve <- function(K, tol = 1e-12) {
-        a <- eigen(K)$vectors
-        b <- eigen(K)$values
-        b[b < tol] <- tol
-        b <- 1/sqrt(b)
-        return(tcrossprod(a%*%diag(b), a))
-    }
-  
-    # Transform phenotypes and genotypes
-    Vg <- vc[1]; Ve <- vc[2] 
-    Sigma <- Vg*Rg + Ve*diag(nrow(Y))
-    U <- eigen_solve(Sigma)
-
-    Y <- crossprod(U, Y)        
-    X <- crossprod(U, X)
-    t1_GAMMA = Sys.time()
-
-} else if (transf == "PCA"){
+if (transf == "PCA"){
   t0_cov <- Sys.time()    
   # Subset covariates
   k <- opt$number
@@ -102,7 +72,7 @@ if(transf == "GAMMA"){
 }
 
 ## 1. Run mlm/manova
-if(opt$scale){
+if(opt$scale){ # WARNING: Asymptotic null may not hold
     Y <- scale(Y)
 }
 
@@ -111,11 +81,11 @@ p <- ncol(X)
 res <- rep(NA, p)
 if (transf != "PCA"){
     for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ X[, snp], type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
+        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
     }
 } else {
     for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(X[, snp], covariates), type = "I", subset = "snp")$aov.tab[1,6]}, 
+        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(covariates, snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, 
                               error = function(e){return(NA)} )
     }
 } 
@@ -128,11 +98,11 @@ if(!is.null(opt$manova)){
     res_manova <- rep(NA, p)
     if (transf != "PCA"){
         for (snp in 1:p) {
-            res_manova[snp] <- tryCatch( {summary(manova(Y ~ x))$stats[1,6]}, error = function(e){return(NA)} )
+            res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data.frame(snp = X[, snp])))$stats[1,6]}, error = function(e){return(NA)} )
         }
     } else {
         for (snp in 1:p) {
-            res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data = data.frame(X[, snp], covariates)))$stats[1,6]}, 
+            res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data = data.frame(covariates, snp = X[, snp])))$stats["snp", 6]}, 
                                          error = function(e){return(NA)} )
         }
     }
@@ -150,12 +120,7 @@ if (opt$runtime){
     cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, transf, round(t_readXY)))
     t_maf <- as.numeric(difftime(t1_maf, t0_maf, units = "secs"))
     cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, transf, round(t_maf)))
-    if(transf == "GAMMA"){
-        t_readRg <- as.numeric(difftime(t1_readRg, t0_readRg, units = "secs"))
-        cat(sprintf("%s\t%s\t%s\t%s\tread_kinship\t%s\n", N, Q, R, transf, round(t_readRg)))
-        t_GAMMA <- as.numeric(difftime(t1_GAMMA, t0_GAMMA, units = "secs"))
-        cat(sprintf("%s\t%s\t%s\t%s\tGAMMA\t%s\n", N, Q, R, transf, round(t_GAMMA)))
-    } else if (transf == "PCA"){
+    if (transf == "PCA"){
         t_cov <- as.numeric(difftime(t1_cov, t0_cov, units = "secs"))
         cat(sprintf("%s\t%s\t%s\t%s\tcov\t%s\n", N, Q, R, transf, round(t_cov)))
     }

@@ -3,10 +3,14 @@ FROM rocker/r-ver:3.5.2
 RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 # R:devtools dependencies
        libcurl4-openssl-dev \
-       libssl-dev \
+       libssl1.0-dev \
        libssh2-1-dev \
        libxml2-dev \
        zlib1g-dev \
+# libgit2 
+       cmake \
+       pkg-config \
+       git \
 # R:copula dependencies
        libgsl-dev \ 
 # bcftools dependencies
@@ -17,28 +21,26 @@ RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 # python3
        python3 \
        python3-pip \
-# python2
-       python \
-       python-pip \
 # other
        wget \
-       git \
        bc \
     && apt-get clean \
     && apt-get purge \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+## Install libgit2 (compile from source as in https://github.com/libgit2/pygit2/issues/999#issuecomment-614510556) 
+RUN git clone --depth=1 -b v1.0.0 https://github.com/libgit2/libgit2.git ~/libgit2_src \
+    && cd ~/libgit2_src \
+    && cmake . -DBUILD_CLAR=OFF -DCMAKE_BUILD_TYPE=Release -DEMBED_SSH_PATH=~/libssh2_src -DCMAKE_INSTALL_PREFIX=~/libgit2 \
+    && cmake --build . --target install \
+    && cp -r ~/libgit2/* /usr/bin \
+    && cp -r ~/libgit2/* /usr/local
 
 ## Install R packages
 RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula"), repos="http://cloud.r-project.org/")'
 
 ## Install python3 packages
 RUN pip3 install pandas scipy
-
-## Install python2 packages
-RUN pip install numpy scipy
-
-## Change ENTRYPOINT
-ENTRYPOINT /bin/bash
 
 ## Install bcftools and HTSlib
 
@@ -65,14 +67,6 @@ RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/
     && chmod +x gemma-0.98.1-linux-static \
     && mv gemma-0.98.1-linux-static /usr/local/bin/gemma
 
-## Install pyLMM
-RUN git clone https://github.com/michaelbilow/pylmm_zarlab \
-    && cd pylmm_zarlab \
-    # Fix a couple of bugs in the pyLMM code
-    && sed -i 's/True -/True ^/g' pylmm/lmm.py \
-    && sed -i 's/print(self.N)//' pylmm/input.py \ 
-    && python setup.py install
-
 ## Install BOLT-LMM
 RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4.tar.gz \
     && tar zxf BOLT-LMM_v2.3.4.tar.gz \
@@ -81,5 +75,7 @@ RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM
     && ln -s $PWD/bolt /usr/local/bin/
 
 ## Install mlm
-RUN R -e 'devtools:::install_github("dgarrimar/mlm", ref = "70ecf39d1d730c3ff3280dccb52ff959ddcb7c70")'
+RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
 
+## Change ENTRYPOINT
+ENTRYPOINT /bin/bash

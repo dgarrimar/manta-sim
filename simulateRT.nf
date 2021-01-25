@@ -32,7 +32,7 @@ if (params.help) {
   log.info ''
   log.info 'SIMULATE RT'
   log.info '======================================================================='
-  log.info 'Benchmark running time of GEMMA, GAMMA and MLM in a simulation using real GT data'
+  log.info 'Benchmark running time of GEMMA and MLM in a simulation using real GT data'
   log.info ''
   log.info 'Usage: '
   log.info '    nextflow run simulateRT.nf [options]'
@@ -224,9 +224,7 @@ process kinship {
     end=\$(date +%s)
     touch runtime.kinship
     for q in {${params.q},}; do
-        for m in {GEMMA,GAMMA}; do
-            echo -e "$n\t\$q\t$r\t\$m\tkinship\t\$((end-start))" >> runtime.kinship.txt
-        done
+            echo -e "$n\t\$q\t$r\tGEMMA\tkinship\t\$((end-start))" >> runtime.kinship.txt
     done 
     """
 }
@@ -267,7 +265,7 @@ process time {
 
     input:
     tuple val(n), val(q), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
-    each t from Channel.fromList(["GEMMA","GAMMA","PCA"])
+    each t from Channel.fromList(["GEMMA","PCA"])
    
     output:
     file("runtime.txt") into out_ch
@@ -282,35 +280,9 @@ process time {
     end=\$(date +%s)
     echo -e "$n\t$q\t$r\t$t\tgemma\t\$((end-start))" > runtime.txt
     """
-    } else if (t == "GAMMA" && n.toInteger() < 5000) {
+    }  else if (t == "PCA") {
     """
-    paste <(cut -f1-2 $fam) $pheno > pheno2.txt
-    start=\$(date +%s)
-    vc.py -b $prefix -p pheno2.txt -k $kinship -o VC.txt -v
-    end=\$(date +%s)
-    echo -e "$n\t$q\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
-
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r >> runtime.txt
-    """
-    } else if (t == "GAMMA" && n.toInteger() >= 5000) {
-    """
-    PIDS=\$(echo $pids | sed 's/ /\\t/g')
-    paste <(cut -f1-2 $fam) $pheno | sed "1 s/^/FID\\tIID\\t\$PIDS\\n/" > pheno2.txt
-    start=\$(date +%s)
-    for pid in {1..${params.q}}; do
-        bolt --bfile $prefix --phenoFile pheno2.txt --phenoCol \$pid --reml > bolt.txt
-        sigma2=\$(grep -F 'Phenotype 1 variance sigma2:' bolt.txt | sed -r 's/.*: (.+) .*/\\1/')
-        h2g=\$(grep -F 'h2g (1,1):' bolt.txt | sed -r 's/.*: (.+) .*/\\1/')
-        echo -e "\$(echo "\$h2g*\$sigma2" | bc -l)\\t\$(echo "(1-\$h2g)*\$sigma2" | bc -l)"
-    done > VC.txt
-    end=\$(date +%s)
-    echo -e "$n\t$q\t$r\t$t\tvc\t\$((end-start))" > runtime.txt
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r >> runtime.txt
-    """
-    } else if (t == "PCA") {
-    """
-    touch VC.txt
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} -k $kinship -v VC.txt --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
+    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
     """
     }
 }
