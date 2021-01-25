@@ -62,10 +62,10 @@ RUN wget --quiet https://github.com/chrchang/plink-ng/releases/download/v2.00a2.
     && mv plink2 /usr/local/bin/
 
 ## Install GEMMA
-RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/0.98.1/gemma-0.98.1-linux-static.gz \
-    && gunzip gemma-0.98.1-linux-static.gz \
-    && chmod +x gemma-0.98.1-linux-static \
-    && mv gemma-0.98.1-linux-static /usr/local/bin/gemma
+RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/0.98.3/gemma-0.98.3-linux-static.gz \
+    && gunzip gemma-0.98.3-linux-static.gz \
+    && chmod +x gemma-0.98.3-linux-static \
+    && mv gemma-0.98.3-linux-static /usr/local/bin/gemma
 
 ## Install BOLT-LMM
 RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4.tar.gz \
