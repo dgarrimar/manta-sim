@@ -212,7 +212,7 @@ process kinship {
     tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs) from gt_ch
  
     output:
-    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file("kinship.sXX.txt") into gt2pt_ch
+    tuple val(n), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file("kinship.sXX.txt.gz") into gt2pt_ch
     file('runtime.kinship.txt') into runtime_kinship_ch
 
     script:
@@ -221,6 +221,7 @@ process kinship {
     sed -i 's/-9/1/' $fam    
     start=\$(date +%s)
     gemma -gk 2 -bfile $prefix -outdir . -o kinship
+    gzip kinship.sXX.txt
     end=\$(date +%s)
     touch runtime.kinship
     for q in {${params.q},}; do

@@ -188,7 +188,7 @@ process kinship {
     tuple val(id), file(bed), file(bim), file(fam) from geno_pruned_ch1
  
     output:
-    tuple val(id), file("${GTgen}.sXX.txt") into kinship_ch
+    tuple val(id), file("${GTgen}.sXX.txt.gz") into kinship_ch
 
     script:
     GTgen = id.split("\\|")[0]
@@ -196,6 +196,7 @@ process kinship {
     # Compute kinship
     sed -i 's/-9/1/' $fam    
     gemma -gk 2 -bfile \$(basename $bed | sed 's/.bed//') -outdir . -o $GTgen 
+    gzip ${GTgen}.sXX.txt
     """
 }
 

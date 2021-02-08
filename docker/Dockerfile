@@ -37,7 +37,7 @@ RUN git clone --depth=1 -b v1.0.0 https://github.com/libgit2/libgit2.git ~/libgi
     && cp -r ~/libgit2/* /usr/local
 
 ## Install R packages
-RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula"), repos="http://cloud.r-project.org/")'
+RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula", "R.utils"), repos="http://cloud.r-project.org/")'
 
 ## Install python3 packages
 RUN pip3 install pandas scipy
