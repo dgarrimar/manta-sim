@@ -19,6 +19,10 @@ params.q = 3
 params.p = 100
 params.PTgen = 'norm-0-1'    
 params.GTgen = 'simPopStructure_chr22' 
+params.varG = 'equal'
+params.corG = 0
+params.varE = 'equal'
+params.corE = 0
 params.level = 0.05
 params.m = 'none'
 params.hs2 = 0 
@@ -103,7 +107,7 @@ if (params.p%params.c != 0) {
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['n','q','PTgen','GTgen','hs2','hg2','t','m']){
+  if(it in ['n','q','PTgen','GTgen','hs2','hg2','t','m','varG','corG','varE','corE']){
     grid[it] = params[it]
   }
 }
@@ -245,6 +249,10 @@ process simulate_test {
     tuple id,n,q,PTgen,GTgen,hs2,hg2,file(bed),file(bim),file(fam),file(kinship),file(eigenval) from gt2pt_ch
     each c from Channel.fromList(1..params.c)
     each t from grid.t
+    each varG from grid.varG
+    each varE from grid.varE
+    each corG from grid.corG
+    each corE from grid.corE
    
     output:
     tuple par_gemma, file('gemma.assoc.txt') optional true into gemma_v_ch
@@ -252,7 +260,7 @@ process simulate_test {
     tuple par_manova, file('manova.assoc.txt') into manova_v_ch
 
     script:
-    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2"
+    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$corG|$corE"
     par_gemma = "$par|GEMMA"
     par_mlm = "$par|MLM_$t"
     par_manova = "$par|MANOVA_$t" 
@@ -273,7 +281,7 @@ process simulate_test {
        plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed --threads 1
  
        # Simulate phenotype
-       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt 
+       simulatePT2.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 -o pheno.txt --varG $varG --corG $corG --varE $varE --corE $corE
     
        # Run GEMMA once
        if [[ $single == $t ]]; then
@@ -336,7 +344,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tmethod\tmtc\ttie\\n/" $sim
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tvarG\tvarE\tcorG\tcorE\tmethod\tmtc\ttie\\n/" $sim
    """
 }
 
