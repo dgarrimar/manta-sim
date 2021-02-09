@@ -59,6 +59,12 @@ X <- X[, maf >= 0.01, drop = F]
 id <- id[maf >= 0.01]
 t1_maf = Sys.time()
 
+if(length(id) == 0){
+  write.table("", file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
+  write.table("", file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
+  quit()
+}
+
 transf <- opt$t
 covariate_file <- opt$covariates
 
