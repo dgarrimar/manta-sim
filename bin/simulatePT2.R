@@ -154,6 +154,10 @@ sigma <- getCov(q, varE, corE)
 
 if(PTgen == 'norm-0-1'){
   E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma) 
+} else if (PTgen == 'multinom'){
+  x <- (q:1)/sum(q:1)
+  y0 <- x/sum(x)
+  E <- t(rmultinom(n, 100, y0)) 
 } else {
   E <- cop(n, sigma, 'norm-0-1')
 }
