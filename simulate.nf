@@ -30,8 +30,8 @@ params.k = 20
 params.c = 10
 
 // PTgen: MVN or copula definition
-params.varG = 'equal'
-params.varE = 'equal'
+params.varG = 'random'
+params.varE = 'random'
 params.corG = 0
 params.corE = 0
 
