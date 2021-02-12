@@ -35,7 +35,7 @@ option_list = list(
               help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Genetic correlations [default %default]", metavar="numeric"),
   make_option(c("--corE"), type="numeric", default=0,
               help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Error correlations [default %default]", metavar="numeric"),
-  make_option(c("-p","--ploc"), type="numeric", default=1,
+  make_option(c("-p","--p_loc"), type="numeric", default=1,
               help="[PTgen: 'dirichlet', 'multinom'] parameter location [default %default]", 
               metavar="numeric"),
   make_option(c("-t", "--transf"), type="character", default="none",
@@ -63,7 +63,7 @@ varG <- opt$varG
 corG <- opt$corG
 varE <- opt$varE
 corE <- opt$corE
-ploc <- opt$ploc
+ploc <- opt$p_loc
 transf <- opt$transf
 outfile <- opt$output
 
