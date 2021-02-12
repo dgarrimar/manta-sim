@@ -11,7 +11,7 @@
 params.genotype = 'data/genotypes.vcf.gz'
 params.metadata = 'data/metadata.tsv'
 params.dir = 'result'
-params.out = 'simulateRT'
+params.out = 'simulationRT.tsv'
 params.n = 1000
 params.q = 3
 params.A = 10
@@ -51,7 +51,7 @@ if (params.help) {
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
-  log.info ' --out OUTPUT                output file prefix (default: simulated)'
+  log.info ' --out OUTPUT                output file prefix (default: simulationRT.tsv)'
   log.info ''
   exit(1)
 }
@@ -193,7 +193,7 @@ process simulateGT {
     end=\$(date +%s)
     touch runtime.pca.txt
     for q in {${params.q},}; do
-        echo -e "$n\t\$q\t$r\tPCA\tpca\t\$((end-start))" >> runtime.pca.txt
+        echo -e "$n\t\$q\t$r\tMLM\tpca\t\$((end-start))" >> runtime.pca.txt
     done
     """
 }
@@ -260,35 +260,35 @@ process simulatePT {
 
 process time {
 
-    tag { "$t n:$n,q:$q,r:$r" }
+    tag { "$method n:$n,q:$q,r:$r" }
   
     label 'high_mem'
 
     input:
     tuple val(n), val(q), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
-    each t from Channel.fromList(["GEMMA","PCA"])
+    each method from Channel.fromList(["GEMMA","MLM"])
    
     output:
     file("runtime.txt") into out_ch
 
     script:
     pids = (1..q.toInteger()).join(' ')
-    if(t == "GEMMA"){
+    if(method == "GEMMA"){
     """ 
     paste <(cut -f1-5 $fam) $pheno > tmpfile; mv tmpfile $fam
     start=\$(date +%s)
     gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma.assoc.txt
     end=\$(date +%s)
-    echo -e "$n\t$q\t$r\t$t\tgemma\t\$((end-start))" > runtime.txt
+    echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
     """
-    }  else if (t == "PCA") {
+    }  else if (method == "MLM") {
     """
-    mlm.R -p $pheno -g $prefix -t $t -c $pcs -n ${params.k} --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
+    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
     """
     }
 }
 
-runtime_kinship_ch.concat(runtime_pca_ch).concat(out_ch).collectFile(name: "${params.out}.txt", sort: { it.text }).set{pub_ch}
+runtime_kinship_ch.concat(runtime_pca_ch).concat(out_ch).collectFile(name: "${params.out}", sort: { it.text }).set{pub_ch}
 
 process end {
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-## Run mlm or manova (with and w/o GAMMA transformation) in simulated datasets
+## Run mlm or manova in simulated datasets
 
 ##  0. Load libraries, parse arguments
 
@@ -14,12 +14,10 @@ option_list = list(
               help="phenotype data obtained by simulatePT.R", metavar="character"),
   make_option(c("-g","--geno"), type="character", 
               help="genotype data obtained by simulateGT.nf", metavar="character"),
-  make_option(c("-c", "--covariates"), type="character", 
-              help="Covariates (genotype PCs computed by plink2)", metavar="character"),
-  make_option(c("-n", "--number"), type="numeric", default=20,
+  make_option(c("-c", "--covariates"), type="character", default=NULL,
+              help="Covariates (genotype PCs computed by plink2) [default %default]", metavar="character"),
+  make_option(c("-k", "--number"), type="numeric", default=20,
               help="Number of PCs used to correct", metavar="numeric"),
-  make_option(c("-t", "--transformation"), type="character", default="none",
-              help="Transformation: none, PCA or GAMMA [default %default]", metavar="character"),
   make_option(c("--mlm"), type="character", 
               help="Output (MLM p-values) file name)", metavar="character"),
   make_option(c("--manova"), type="character",
@@ -59,10 +57,9 @@ X <- X[, maf >= 0.01, drop = F]
 id <- id[maf >= 0.01]
 t1_maf = Sys.time()
 
-transf <- opt$t
 covariate_file <- opt$covariates
 
-if (transf == "PCA"){
+if (!is.null(covariate_file)){
   t0_cov <- Sys.time()    
   # Subset covariates
   k <- opt$number
@@ -72,6 +69,7 @@ if (transf == "PCA"){
 }
 
 ## 1. Run mlm/manova
+
 if(opt$scale){ # WARNING: Asymptotic null may not hold
     Y <- scale(Y)
 }
@@ -79,7 +77,7 @@ if(opt$scale){ # WARNING: Asymptotic null may not hold
 t0_mlm <- Sys.time()
 p <- ncol(X)
 res <- rep(NA, p)
-if (transf != "PCA"){
+if (is.null(covariate_file)){
     for (snp in 1:p) {
         res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
     }
@@ -96,7 +94,7 @@ t1_mlm <- Sys.time()
 if(!is.null(opt$manova)){
     t0_manova <- Sys.time()
     res_manova <- rep(NA, p)
-    if (transf != "PCA"){
+    if (is.null(covariate_file)){
         for (snp in 1:p) {
             res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data.frame(snp = X[, snp])))$stats[1,6]}, error = function(e){return(NA)} )
         }
@@ -117,17 +115,17 @@ if (opt$runtime){
     Q <- ncol(Y)
     R <- opt$id_replicate
     t_readXY <- as.numeric(difftime(t1_readXY, t0_readXY, units = "secs"))
-    cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, transf, round(t_readXY)))
+    cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, 'MLM', round(t_readXY)))
     t_maf <- as.numeric(difftime(t1_maf, t0_maf, units = "secs"))
-    cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, transf, round(t_maf)))
-    if (transf == "PCA"){
+    cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, 'MLM', round(t_maf)))
+    if (!is.null(covariate_file)){
         t_cov <- as.numeric(difftime(t1_cov, t0_cov, units = "secs"))
-        cat(sprintf("%s\t%s\t%s\t%s\tcov\t%s\n", N, Q, R, transf, round(t_cov)))
+        cat(sprintf("%s\t%s\t%s\t%s\tcov\t%s\n", N, Q, R, 'MLM', round(t_cov)))
     }
     t_mlm <- as.numeric(difftime(t1_mlm, t0_mlm, units = "secs"))
-    cat(sprintf("%s\t%s\t%s\t%s\tmlm\t%s\n", N, Q, R, transf, round(t_mlm)))
+    cat(sprintf("%s\t%s\t%s\t%s\tmlm\t%s\n", N, Q, R, 'MLM', round(t_mlm)))
     if(!is.null(opt$manova)){
         t_manova <- as.numeric(difftime(t1_manova, t0_manova, units = "secs"))
-        cat(sprintf("%s\t%s\t%s\t%s\tmanova\t%s\n", N, Q, R, transf, round(t_manova)))
+        cat(sprintf("%s\t%s\t%s\t%s\tmanova\t%s\n", N, Q, R, 'MLM', round(t_manova)))
     }
 }
