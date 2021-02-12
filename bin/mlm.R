@@ -38,7 +38,7 @@ set.seed(123)
 
 Y <- as.matrix(fread(opt$pheno, data.table = F))
 
-if(sum(Y) == 0){ # Variant has been filtered due to MAF < 0.01 as in GEMMA (defaul)
+if(sum(Y) == 0){ # Variant has been filtered due to MAF < 0.01 as in GEMMA (default)
   write.table(NULL, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
   write.table(NULL, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
   quit('no', status = 0)
@@ -62,35 +62,26 @@ if(opt$scale){ # WARNING: Asymptotic null may not hold
     Y <- scale(Y)
 }
 
-p <- ncol(X)
-res <- rep(NA, p)
 if (is.null(covariate_file)){
-    for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
-    }
+    res <- tryCatch( {mlm(Y ~ ., data = data.frame(snp = X[, 1]), type = "I", subset = "snp")$aov.tab[1, 6]}, 
+                     error = function(e){return(NA)} )
 } else {
-    for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(covariates, snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, 
-                              error = function(e){return(NA)} )
+    res <- tryCatch( {mlm(Y ~ ., data = data.frame(covariates, snp = X[, 1]), type = "I", subset = "snp")$aov.tab[1, 6]}, 
+                     error = function(e){return(NA)} )
     }
 } 
-res <- cbind.data.frame(id, res)
+res <- c(id, res)
 write.table(res, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
-t1_mlm <- Sys.time()
 
 if(!is.null(opt$manova)){
-    res_manova <- rep(NA, p)
     if (is.null(covariate_file)){
-        for (snp in 1:p) {
-            res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data.frame(snp = X[, snp])))$stats[1,6]}, error = function(e){return(NA)} )
-        }
+        res_manova <- tryCatch( {summary(manova(Y ~ ., data.frame(snp = X[, 1])))$stats[1, 6]}, 
+                                error = function(e){return(NA)} )
     } else {
-        for (snp in 1:p) {
-            res_manova[snp] <- tryCatch( {summary(manova(Y ~ ., data = data.frame(covariates, snp = X[, snp])))$stats["snp", 6]}, 
-                                         error = function(e){return(NA)} )
-        }
+        res_manova <- tryCatch( {summary(manova(Y ~ ., data = data.frame(covariates, snp = X[, 1])))$stats["snp", 6]}, 
+                                error = function(e){return(NA)} )
     }
-    res_manova <- cbind.data.frame(id, res_manova)
+    res_manova <- c(id, res_manova)
     write.table(res_manova, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
 }
 
