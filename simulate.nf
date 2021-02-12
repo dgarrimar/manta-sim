@@ -347,7 +347,7 @@ process simulate_test {
        plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed --threads 1
 
        # Double check that is unique
-       if [[ $(cat geno.bim | wc -l) -gt 1 ]]; then continue; fi
+       if [[ \$(cat geno.bim | wc -l) -gt 1 ]]; then continue; fi
  
        # Simulate phenotype
        simulatePT.R -s \$v -n $n -q $q -m $PTgen --geno geno -o pheno.txt -d $d -H $hk -v $y_var -c $y_cor -D $c_dist -p $p_loc -S $p_sd --p_dist $p_dist -l $lambda -t $t --fx ${params.fx}

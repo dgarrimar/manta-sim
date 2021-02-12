@@ -68,9 +68,9 @@ if (is.null(covariate_file)){
 } else {
     res <- tryCatch( {mlm(Y ~ ., data = data.frame(covariates, snp = X[, 1]), type = "I", subset = "snp")$aov.tab[1, 6]}, 
                      error = function(e){return(NA)} )
-    }
-} 
-res <- c(id, res)
+}
+ 
+res <- cbind(id, res)
 write.table(res, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
 
 if(!is.null(opt$manova)){
@@ -81,7 +81,7 @@ if(!is.null(opt$manova)){
         res_manova <- tryCatch( {summary(manova(Y ~ ., data = data.frame(covariates, snp = X[, 1])))$stats["snp", 6]}, 
                                 error = function(e){return(NA)} )
     }
-    res_manova <- c(id, res_manova)
+    res_manova <- cbind(id, res_manova)
     write.table(res_manova, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
 }
 
