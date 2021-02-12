@@ -50,12 +50,34 @@ id <- colnames(X)
 
 # Apply same filter as in GEMMA regarding MAF (default)
 maf <- apply(X, 2, function(x){
-    tbl <- table(x)
-    maf <- sum(c(tbl[3], tbl[2]/2), na.rm = T) / sum(tbl, na.rm = T)
+   tbl <- table(x)
+   if (length(tbl) == 1){
+      return(0)
+   } else if (length(tbl) == 2){
+      gt <- 0:2
+      w <- gt[!gt %in% names(tbl)]
+      if(w == 0){
+         tbl <- c(0, tbl)
+      } else if (w == 1){
+         tbl <- c(tbl[1], 0, tbl[2])
+      } else if (w == 2) {
+         tbl <- c(tbl, 0)
+      }
+      names(tbl)[w+1] <- w
+   }
+   maf <- (tbl['2'] + tbl['1']/2) / sum(tbl)
+   return(min(maf, 1-maf))
 })
+
 X <- X[, maf >= 0.01, drop = F]
 id <- id[maf >= 0.01]
 t1_maf = Sys.time()
+
+if(length(id) == 0){
+   write.table(NULL, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
+   write.table(NULL, file = opt$manova, col.names = F, row.names = F, quote = F, sep = "\t")
+   quit('no', status = 0)
+}
 
 covariate_file <- opt$covariates
 
