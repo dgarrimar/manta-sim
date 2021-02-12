@@ -11,7 +11,7 @@
 params.genotype = 'data/genotypes.vcf.gz'
 params.metadata = 'data/metadata.tsv'
 params.dir = 'result'
-params.out = 'simulateGT'
+params.out = 'simulationGT'
 params.n = 1000
 params.chr = "W"
 params.A = 10
@@ -47,7 +47,7 @@ if (params.help) {
   log.info ' --pca PCA                   perform PCA (default: false)'
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
-  log.info ' --out OUTPUT                output file prefix (default: simulated)'
+  log.info ' --out OUTPUT                output file prefix (default: simulationGT)'
   log.info ''
   exit(1)
 }
