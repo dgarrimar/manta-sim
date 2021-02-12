@@ -18,7 +18,6 @@ params.A = 10
 params.p = 10000
 params.b = 1000 
 params.k = 20
-params.hs2 = 0 
 params.hg2 = 0.2
 params.seed = 123
 params.r = 1
@@ -46,7 +45,6 @@ if (params.help) {
   log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
   log.info ' --A ANCESTORS               number of ancestors (default: 10)'
   log.info ' --k NUMBER PC               number of PCs used to correct population stratification (default: 20)'
-  log.info ' --hs2 SNP HERITABILITY      average fraction of variance explained by causal variants across traits (default: 0)'
   log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0)'
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
@@ -71,7 +69,6 @@ log.info "No. of variants              : ${params.p}"
 log.info "No. of variants per block    : ${params.b}"
 log.info "No. of ancestors             : ${params.A}"
 log.info "No. of PCs                   : ${params.k}"
-log.info "Causal variant heritability  : ${params.hs2}"
 log.info "Relatedness heritability     : ${params.hg2}"
 log.info "Replicate number             : ${params.r}"
 log.info "Seed                         : ${params.seed}"
@@ -250,7 +247,7 @@ process simulatePT {
     script:
     """ 
     # Simulate phenotype
-    simulatePT.R -s ${params.seed} -n $n -q $q --geno $prefix --kinship $kinship --hs2 ${params.hs2} --hg2 ${params.hg2} -o pheno.txt 
+    simulatePT.R -s ${params.seed} -n $n -q $q --geno $prefix --kinship $kinship --hg2 ${params.hg2} -o pheno.txt 
     """
 }
 
