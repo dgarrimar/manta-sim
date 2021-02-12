@@ -1,12 +1,11 @@
-clean
 logs
-test
-data
-.nextflow*
-result
+clean
 GT
-work
+data
+result
 trace.txt*
+.nextflow*
+work
 TODO
 bin/.ipynb_checkpoints
 bin/analysis
@@ -15,4 +14,5 @@ GEMMA
 docker/.docker
 singularity
 run
-tmp*
+old
+
