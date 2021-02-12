@@ -150,7 +150,6 @@ if (hs2 != 0){
   
    # Load genotypes
    X <- as.matrix(BEDMatrix(geno, simple_names = T))
-   X <- scale(X) # Standarized genotypes
 
    # Generate effects
    set.seed(opt$seed)
