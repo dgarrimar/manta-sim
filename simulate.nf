@@ -227,6 +227,7 @@ process kinship {
     GTgen = id.split("\\|")[0]
     """
     # Compute kinship
+    export OPENBLAS_NUM_THREADS=1
     sed -i 's/-9/1/' $fam    
     gemma -gk 2 -bfile \$(basename $bed | sed 's/.bed//') -outdir . -o $GTgen 
     gzip ${GTgen}.sXX.txt
@@ -328,6 +329,7 @@ process simulate_test {
 
        # Run GEMMA once
        if [[ $single == $C ]]; then
+          export OPENBLAS_NUM_THREADS=1
           paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
           (timeout 120 gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v &> STATUS || exit 0)
           if [[ \$(grep ERROR STATUS) ]]; then

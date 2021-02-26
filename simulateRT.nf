@@ -21,6 +21,7 @@ params.k = 20
 params.hg2 = 0.2
 params.seed = 123
 params.r = 1
+params.t = 1
 params.help = false
 
 /*
@@ -48,6 +49,7 @@ if (params.help) {
   log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0)'
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
+  log.info ' --t OPENBLAS THREADS        OpenBLAS number of threads (default: 1)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
   log.info ' --out OUTPUT                output file prefix (default: simulationRT.tsv)'
   log.info ''
@@ -71,6 +73,7 @@ log.info "No. of ancestors             : ${params.A}"
 log.info "No. of PCs                   : ${params.k}"
 log.info "Relatedness heritability     : ${params.hg2}"
 log.info "Replicate number             : ${params.r}"
+log.info "OpenBLAS number of threads   : ${params.t}"
 log.info "Seed                         : ${params.seed}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
@@ -216,11 +219,11 @@ process kinship {
     """
     # Compute kinship
     sed -i 's/-9/1/' $fam    
+    export OPENBLAS_NUM_THREADS=${params.t}
     start=\$(date +%s)
     gemma -gk 2 -bfile $prefix -outdir . -o kinship
     gzip kinship.sXX.txt
     end=\$(date +%s)
-    touch runtime.kinship
     for q in {${params.q},}; do
             echo -e "$n\t\$q\t$r\tGEMMA\tkinship\t\$((end-start))" >> runtime.kinship.txt
     done 
@@ -273,8 +276,9 @@ process time {
     if(method == "GEMMA"){
     """ 
     paste <(cut -f1-5 $fam) $pheno > tmpfile; mv tmpfile $fam
+    export OPENBLAS_NUM_THREADS=${params.t}
     start=\$(date +%s)
-    gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma.assoc.txt
+    gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma
     end=\$(date +%s)
     echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
     """
