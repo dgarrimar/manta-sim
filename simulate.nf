@@ -318,20 +318,27 @@ process simulate_test {
  
        # Simulate phenotype
        simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --corG $corG --corE $corE --p_loc $p_loc -t ${params.t} -o pheno.txt 
-    
-       # Run GEMMA once
-       if [[ $single == $C ]]; then
-          paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
-          gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v
-          sed '1d' gemma_\$v.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma_\$v.assoc.txt
-       fi   
- 
+
        # Run MLM/MANOVA
        if [[ $C == 'PCA' ]]; then
           mlm.R -p pheno.txt -g geno -c $eigenval -k ${params.k} --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale
        else 
           mlm.R -p pheno.txt -g geno --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale 
        fi
+
+       # Run GEMMA once
+       if [[ $single == $C ]]; then
+          paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
+          (timeout 120 gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v &> STATUS || exit 0)
+          if [[ \$(grep ERROR STATUS) ]]; then
+             touch gemma_\$v.assoc.txt
+             continue
+          else
+             gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v
+             sed '1d' gemma_\$v.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma_\$v.assoc.txt
+          fi
+       fi
+
     done
     cat mlm_*.assoc.txt > mlm.assoc.txt
     cat manova_*.assoc.txt > manova.assoc.txt
