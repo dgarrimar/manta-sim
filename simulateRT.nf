@@ -179,7 +179,7 @@ process simulateGT {
 
     script:
     """
-    simulate.py -g $vcf -A ${params.A} -p $pickle -n $n -b ${params.b} -s ${params.seed} -o sim.vcf --named 
+    simulate.py -g $vcf -A ${params.A} -p $pickle -n $n -b ${params.b} -s $r -o sim.vcf --named
 
     # convert to PLINK format
     plink2 --vcf sim.vcf --make-bed --out geno --threads 1
@@ -250,7 +250,7 @@ process simulatePT {
     script:
     """ 
     # Simulate phenotype
-    simulatePT.R -s ${params.seed} -n $n -q $q --geno $prefix --kinship $kinship --hg2 ${params.hg2} -o pheno.txt 
+    simulatePT.R -s $r -n $n -q $q --geno $prefix --kinship $kinship --hg2 ${params.hg2} -o pheno.txt
     """
 }
 
