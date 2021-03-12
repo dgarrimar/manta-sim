@@ -8,7 +8,6 @@ trace.txt*
 work
 TODO
 bin/.ipynb_checkpoints
-bin/analysis
 bin/prototype
 GEMMA
 docker/.docker
