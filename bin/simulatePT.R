@@ -39,6 +39,10 @@ option_list = list(
               help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Genetic correlations [default %default]", metavar="numeric"),
   make_option(c("--corE"), type="numeric", default=0,
               help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Error correlations [default %default]", metavar="numeric"),
+  make_option(c("--b"), type="character", default="equal",
+              help="[PTgen: mvnorm, copula] Effect type: 'equal', 'unequal', 'block' [default %default]", metavar="character"),
+  make_option(c("--ub"), type="character", default=2,
+              help="[PTgen: mvnorm, copula; b: unequal] max/min effect ratio [default %default]", metavar="numeric"),
   make_option(c("-p","--p_loc"), type="numeric", default=1,
               help="[PTgen: 'dirichlet', 'multinom'] parameter location [default %default]", 
               metavar="numeric"),
@@ -69,6 +73,8 @@ corG <- opt$corG
 varE <- opt$varE
 vEr <- opt$vEr
 corE <- opt$corE
+b <- opt$b
+ub <- opt$ub
 ploc <- opt$p_loc
 transf <- opt$transf
 outfile <- opt$output
@@ -91,7 +97,25 @@ rmatnorm_C <- function(M, U, V, tol = 1e-12){
   return(M + crossprod(L1, Z) %*% L2)
 }
 
-getCov <- function(q, v, c, u, tol = 1e-10){
+getBeta <- function(q, b = "equal", ub = 2, fr = 0.75){ 
+  
+  # Generate effects
+  if(b == "equal"){
+    return(matrix(rep(1,q), 1, q))
+  } else if (b == "unequal"){
+    return(matrix(seq(from = 1, to = ub, length.out = q), 1, q))
+  } else if (b == "block"){
+    w <- max(1, round(fr*q))
+    if(eff == "equal"){
+      B <- c(rep(1, w), rep(0, q-w))
+    } else if(eff == "unequal"){
+      B <- c(rep(1, ceiling(w/2)), rep(-1, floor(w/2)), rep(0, q-w))
+    }
+    return(matrix(B, 1, q))
+  }
+}
+
+getCov <- function(q, v, c, u, B, tol = 1e-10){
 
   if (v == 'random') {
     return(tcrossprod(matrix(rnorm(q^2), q, q)))
@@ -103,7 +127,9 @@ getCov <- function(q, v, c, u, tol = 1e-10){
   } else {
     stop(sprintf("Unknown option: Var = '%s'.", v))
   }
-  R <- matrix(c, nrow = q, ncol = q)
+  
+  # R <- matrix(c, nrow = q, ncol = q)
+  R <- tcrossprod(B) * c
   diag(R) <- rep(1, q)
   sigma <- R * tcrossprod(sqrt(vars))
 
@@ -160,7 +186,8 @@ if (hs2 != 0){
    X <- as.matrix(BEDMatrix(geno, simple_names = T))
 
    # Generate effects
-   B <- matrix(sample(c(-1,1), replace = T, size = q), 1, q)
+   B <- getBeta(q, b)
+   
    XB <- X %*% B 
    XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) # Rescale
 
@@ -174,13 +201,13 @@ if (hg2 != 0){
    Rg <- as.matrix(fread(kinship, data.table = FALSE, sep = "\t")) 
   
    # Genotype effect
-   G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = getCov(q, varG, corG, vGr)) 
+   G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = getCov(q, varG, corG, vGr, rep(1, q))) 
    G <- G / sqrt(mean(diag(cov(G)))) * sqrt(hg2) # Rescale
 } 
 
 ## 3. Residuals
 
-sigma <- getCov(q, varE, corE, vEr)
+sigma <- getCov(q, varE, corE, vEr, if(b == "block"){as.vector(B)}else{rep(1, q)})
 
 if(PTgen == 'mvnorm'){
     E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma) 
