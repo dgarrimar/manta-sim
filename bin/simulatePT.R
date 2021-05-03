@@ -44,10 +44,12 @@ option_list = list(
   make_option(c("--ub"), type="character", default=2,
               help="[PTgen: mvnorm, copula; b: unequal] max/min effect ratio [default %default]", metavar="numeric"),
   make_option(c("-p","--p_loc"), type="numeric", default=1,
-              help="[PTgen: 'dirichlet', 'multinom'] parameter location [default %default]", 
+              help="[PTgen: 'simplex', 'multinom'] parameter location [default %default]", 
               metavar="numeric"),
   make_option(c("-t", "--transf"), type="character", default="none",
               help="Transformation of response variables [default %default]", metavar="numeric"),
+  make_option(c("-f", "--fx"), type="character", default=NULL,
+              help="Path to helper functions", metavar="character"),
   make_option(c("-o", "--output"), type="character", default=NULL,
               help="Output (simulated phenotype) file name", metavar="character")
 )
@@ -79,102 +81,7 @@ ploc <- opt$p_loc
 transf <- opt$transf
 outfile <- opt$output
 
-rmatnorm_C <- function(M, U, V, tol = 1e-12){
-  # Sample from Matrix Normal distribution via Cholesky
-  # https://en.wikipedia.org/wiki/Matrix_normal_distribution#Drawing_values_from_the_distribution
-  # Fast but requires U and V positive definite. 
-  # Works well for positive semidefinite matrices via pivoting, when not many eigenvalues are ~ 0.
-  # Otherwise, better use Kronecker product
-
-  a <- nrow(M)
-  b <- ncol(M)
-  Z <- matrix(rnorm(a*b, 0, 1), a, b)
-  L1 <- suppressWarnings(chol(U, pivot = T))
-  L1 <- L1[, order(attr(L1, "pivot"))]
-  L2 <- suppressWarnings(chol(V, pivot = T))
-  L2 <- L2[, order(attr(L2, "pivot"))]
-
-  return(M + crossprod(L1, Z) %*% L2)
-}
-
-getBeta <- function(q, b = "equal", ub = 2, fr = 0.75){ 
-  
-  # Generate effects
-  if(b == "equal"){
-    return(matrix(rep(1,q), 1, q))
-  } else if (b == "unequal"){
-    return(matrix(seq(from = 1, to = ub, length.out = q), 1, q))
-  } else if (b == "block"){
-    w <- max(1, round(fr*q))
-    if(eff == "equal"){
-      B <- c(rep(1, w), rep(0, q-w))
-    } else if(eff == "unequal"){
-      B <- c(rep(1, ceiling(w/2)), rep(-1, floor(w/2)), rep(0, q-w))
-    }
-    return(matrix(B, 1, q))
-  }
-}
-
-getCov <- function(q, v, c, u, B, tol = 1e-10){
-
-  if (v == 'random') {
-    return(tcrossprod(matrix(rnorm(q^2), q, q)))
-  } else if(v == 'equal'){
-    vars <- rep(1, q)
-  } else if (v == 'unequal'){
-    # vars <- (q:1)/sum(q:1)
-    vars <- seq(from = 1, to = u, length.out = q)
-  } else {
-    stop(sprintf("Unknown option: Var = '%s'.", v))
-  }
-  
-  # R <- matrix(c, nrow = q, ncol = q)
-  R <- tcrossprod(B) * c
-  diag(R) <- rep(1, q)
-  sigma <- R * tcrossprod(sqrt(vars))
-
-  if(any(eigen(sigma, only.values = T)$values < tol)){
-    stop("Covariance matrix should be positive definite.")
-  }
-
-  return(sigma)
-}
-
-sim.copula <- function(n, sigma, distdef){
-
-   # Obtain correlation matrix
-   q <- nrow(sigma)
-   D <- diag(q)*sqrt(diag(sigma))
-   R <- solve(D)%*%sigma%*%solve(D)
-   # https://math.stackexchange.com/questions/186959/correlation-matrix-from-covariance-matrix
-  
-   # Build and sample from copula
-   distrib <- unlist(strsplit(distdef, "-"))[1]
-   params <- as.numeric(unlist(strsplit(distdef, "-"))[-1])
-   mar <- switch(distrib[1],
-                 "unif" = list(min = params[1], max = params[2]),
-                 "gamma" = list(shape = params[1], scale = params[2]),
-                 "beta" = list(shape1 = params[1], shape2 = params[2]),
-                 "t" = list(df = params[1]),
-                 "exp" = list(rate = params[1]),
-                 "lnorm" = list(meanlog = params[1], sdlog = params[2]),
-                 "binom" = list(size = params[1], p = params[2]),
-                 "norm" = list(mean = params[1], sd = params[2]))
-   myCop <- normalCopula(param = P2p(R), dim = q, dispstr = "un")
-   myMvd <- mvdc(copula = myCop, margins = rep(distrib[1], q),
-                 paramMargins = rep(list(mar), q))
-   E <- rMvdc(n, myMvd) # This has sigma = R
-   E <- t(apply(scale(E),1,function(e){e*sqrt(diag(sigma))})) 
-
-   return(E)
-}
-
-rdirichlet <- function(n, alpha) {
-   l <- length(alpha)
-   x <- matrix(rgamma(l*n,alpha),ncol=l,byrow=TRUE)
-   sm <- x%*%rep(1,l)
-   return(x/as.vector(sm))
-}
+source(sprintf("%s/fx.R", opt$fx))
 
 set.seed(opt$seed)
 
@@ -186,7 +93,7 @@ if (hs2 != 0){
    X <- as.matrix(BEDMatrix(geno, simple_names = T))
 
    # Generate effects
-   B <- getBeta(q, b)
+   B <- getBeta(q, if(PTgen %in% c("simplex", "multinom")){PTgen}else{b})
    
    XB <- X %*% B 
    XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) # Rescale
@@ -207,20 +114,32 @@ if (hg2 != 0){
 
 ## 3. Residuals
 
-sigma <- getCov(q, varE, corE, vEr, if(b == "block"){as.vector(B)}else{rep(1, q)})
-
 if(PTgen == 'mvnorm'){
+    sigma <- getCov(q, varE, corE, vEr, if(hs2 != 0 && b == "block"){as.vector(B)}else{rep(1, q)})
     E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma) 
-} else if (PTgen == 'dirichlet'){
+} else if (PTgen == 'simplex'){
+    
+    tbl <- read.table(sprintf("%s/qlocstdev.%s.tsv", opt$fx, "norm"), h = T)
+    colnames(tbl) <- c("Q", "L", "S")
+    if(! q %in% unique(tbl$Q)){
+      stop(sprintf("stdev not precomputed for q = %s", q))
+    } 
+    stdev <- subset(tbl, Q == q & L == ploc)$S
+    
     x <- c(ploc, rep(1, q-1))
-    p <- x/sum(x)
-    E <- rdirichlet(n, p)
+    y0 <- x/sum(x)
+    E <- sim.simplex(q, n, y0, stdev, dist = "norm")
+    # [NOTE] We are not checking here as intended for q <= 10
+  
 } else if (PTgen == 'multinom'){
+  
     x <- c(ploc, rep(1, q-1))
     p <- x/sum(x)
     N <- 1000
     E <- t(rmultinom(n, N, p))
-}else {
+    
+} else {
+    sigma <- getCov(q, varE, corE, vEr, if(hs2 != 0 && b == "block"){as.vector(B)}else{rep(1, q)})
     E <- sim.copula(n, sigma, PTgen)
 }
 
