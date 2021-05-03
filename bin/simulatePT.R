@@ -88,7 +88,6 @@ rmatnorm_C <- function(M, U, V, tol = 1e-12){
 getCov <- function(q, v, c, tol = 1e-10){
 
   if (v == 'random') {
-    set.seed(1) # Random but common across simulations
     return(tcrossprod(matrix(rnorm(q^2), q, q)))
   } else if(v == 'equal'){
     vars <- rep(1, q)
@@ -144,6 +143,8 @@ rdirichlet <- function(n, alpha) {
    return(x/as.vector(sm))
 }
 
+set.seed(opt$seed)
+
 ## 1. Effect of the SNP
   
 if (hs2 != 0){
@@ -152,7 +153,6 @@ if (hs2 != 0){
    X <- as.matrix(BEDMatrix(geno, simple_names = T))
 
    # Generate effects
-   set.seed(opt$seed)
    B <- matrix(sample(c(-1,1), replace = T, size = q), 1, q)
    XB <- X %*% B 
    XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) # Rescale
@@ -167,7 +167,6 @@ if (hg2 != 0){
    Rg <- as.matrix(fread(kinship, data.table = FALSE, sep = "\t")) 
   
    # Genotype effect
-   set.seed(opt$seed)
    G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = getCov(q, varG, corG)) 
    G <- G / sqrt(mean(diag(cov(G)))) * sqrt(hg2) # Rescale
 } 
@@ -175,7 +174,6 @@ if (hg2 != 0){
 ## 3. Residuals
 
 sigma <- getCov(q, varE, corE)
-set.seed(opt$seed)
 
 if(PTgen == 'mvnorm'){
     E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma) 
