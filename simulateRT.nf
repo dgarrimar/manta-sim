@@ -277,10 +277,15 @@ process time {
     """ 
     paste <(cut -f1-5 $fam) $pheno > tmpfile; mv tmpfile $fam
     export OPENBLAS_NUM_THREADS=${params.t}
-    start=\$(date +%s)
-    gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma
-    end=\$(date +%s)
-    echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
+    (timeout 600 gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma &> STATUS || exit 0)
+    if [[ \$(grep ERROR STATUS) ]]; then
+        echo -e "$n\t$q\t$r\t$method\tgemma\tNA)" > runtime.txt
+    else
+        start=\$(date +%s)
+        gemma -lmm -b $prefix -k $kinship -n $pids -outdir . -o gemma
+        end=\$(date +%s)
+        echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
+    fi
     """
     }  else if (method == "MLM") {
     """
