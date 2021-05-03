@@ -32,6 +32,8 @@ params.c = 10
 // PTgen: MVN or copula definition
 params.varG = 'random'
 params.varE = 'random'
+params.varGr = 2
+params.varEr = 2
 params.corG = 0
 params.corE = 0
 
@@ -73,6 +75,8 @@ if (params.help) {
   log.info 'Additional parameters for PTgen mvnorm or copula:'
   log.info ' --varG VARIANCE G           genotype variances: equal, unequal, random (default: equal)'
   log.info ' --varE VARIANCE E           error variances: equal, unequal, random (default: equal)'
+  log.info ' --varGr VARIANCE RATIO      max/min ratio between genotype variances (when --varG unequal)'
+  log.info ' --varEr VARIANCE RATIO      max/min ratio between error variances (when --varE unequal)'
   log.info ' --corG CORRELATION G        genotype correlations when varG is not random (default: 0)'
   log.info ' --corE CORRELATION E        error correlations when varE is not random (default: 0)'
   log.info ''
@@ -119,6 +123,8 @@ if(params.PTgen == 'dirichlet' || params.PTgen == "multinom"){
   log.info '---------------------'
   log.info "Variances (G)                : ${params.varG}"
   log.info "Variances (E)                : ${params.varE}"
+  log.info "Ratio variances (G)          : ${params.varGr}"
+  log.info "Ratio variances (E)          : ${params.varEr}"
   log.info "Correlations (G)             : ${params.corG}"
   log.info "Correlations (E)             : ${params.corE}"
   log.info ''
@@ -138,7 +144,7 @@ if (params.p%params.c != 0) {
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','corG','corE','p_loc','C','m']){
+  if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','p_loc','C','m']){
     grid[it] = params[it]
   }
 }
@@ -283,6 +289,8 @@ process simulate_test {
     each hg2 from grid.hg2
     each varG from grid.varG
     each varE from grid.varE
+    each varGr from grid.varGr
+    each varEr from grid.varEr
     each corG from grid.corG
     each corE from grid.corE
     each p_loc from grid.p_loc
@@ -294,7 +302,7 @@ process simulate_test {
     tuple par_manova, file('manova.assoc.txt') into manova_v_ch
 
     script:
-    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$corG|$corE|$p_loc"
+    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$varGr|$varEr|$corG|$corE|$p_loc"
     par_gemma = "$par|GEMMA"
     par_mlm = "$par|MLM_$C"
     par_manova = "$par|MANOVA_$C" 
@@ -318,7 +326,7 @@ process simulate_test {
        if [[ \$(cat geno.bim | wc -l) -gt 1 ]]; then continue; fi
  
        # Simulate phenotype
-       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --corG $corG --corE $corE --p_loc $p_loc -t ${params.t} -o pheno.txt 
+       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --vGr $varGr --vEr $varEr --corG $corG --corE $corE --p_loc $p_loc -t ${params.t} -o pheno.txt 
 
        # Run MLM/MANOVA
        if [[ $C == 'PCA' ]]; then
@@ -393,7 +401,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tVarG\tvarE\tcorG\tcorE\tp_loc\tmethod\tmtc\ttie\\n/" $sim
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tVarG\tVarE\tVarGr\tVarEr\tcorG\tcorE\tp_loc\tmethod\tmtc\ttie\\n/" $sim
    """
 }
 

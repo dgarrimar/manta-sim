@@ -31,6 +31,10 @@ option_list = list(
               help="[PTgen: mvnorm, copula] Genetic variances: 'equal', 'unequal', 'random' [default %default]", metavar="character"),
   make_option(c("--varE"), type="character", default="random",
               help="[PTgen: mvnorm, copula] Error variances: 'equal', 'unequal', 'random' [default %default]", metavar="character"),
+  make_option(c("--vGr"), type="character", default=2,
+              help="[PTgen: mvnorm, copula; varG: unequal] max/min ratio of genetic variances [default %default]", metavar="numeric"),
+  make_option(c("--vEr"), type="character", default=2,
+              help="[PTgen: mvnorm, copula; varE: unequal] max/min ratio of error variances [default %default]", metavar="numeric"),
   make_option(c("--corG"), type="numeric", default=0,
               help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Genetic correlations [default %default]", metavar="numeric"),
   make_option(c("--corE"), type="numeric", default=0,
@@ -60,8 +64,10 @@ kinship <- opt$kinship
 hs2 <- opt$hs2
 hg2 <- opt$hg2
 varG <- opt$varG
+vGr <- opt$vGr
 corG <- opt$corG
 varE <- opt$varE
+vEr <- opt$vEr
 corE <- opt$corE
 ploc <- opt$p_loc
 transf <- opt$transf
@@ -85,14 +91,15 @@ rmatnorm_C <- function(M, U, V, tol = 1e-12){
   return(M + crossprod(L1, Z) %*% L2)
 }
 
-getCov <- function(q, v, c, tol = 1e-10){
+getCov <- function(q, v, c, u, tol = 1e-10){
 
   if (v == 'random') {
     return(tcrossprod(matrix(rnorm(q^2), q, q)))
   } else if(v == 'equal'){
     vars <- rep(1, q)
   } else if (v == 'unequal'){
-    vars <- (q:1)/sum(q:1)
+    # vars <- (q:1)/sum(q:1)
+    vars <- seq(from = 1, to = u, length.out = q)
   } else {
     stop(sprintf("Unknown option: Var = '%s'.", v))
   }
@@ -167,13 +174,13 @@ if (hg2 != 0){
    Rg <- as.matrix(fread(kinship, data.table = FALSE, sep = "\t")) 
   
    # Genotype effect
-   G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = getCov(q, varG, corG)) 
+   G <- rmatnorm_C(M = matrix(0, n, q), U = Rg, V = getCov(q, varG, corG, vGr)) 
    G <- G / sqrt(mean(diag(cov(G)))) * sqrt(hg2) # Rescale
 } 
 
 ## 3. Residuals
 
-sigma <- getCov(q, varE, corE)
+sigma <- getCov(q, varE, corE, vEr)
 
 if(PTgen == 'mvnorm'){
     E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma) 
