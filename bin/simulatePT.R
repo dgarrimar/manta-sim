@@ -46,6 +46,10 @@ option_list = list(
   make_option(c("-p","--p_loc"), type="numeric", default=1,
               help="[PTgen: 'simplex', 'multinom'] parameter location [default %default]", 
               metavar="numeric"),
+  make_option(c("--hk"), type="numeric", default=1, help="[PTgen: 'mvnorm', varE: 'random'] heteroscedasticity (variances) [default %default]", 
+              metavar="numeric"),
+  make_option(c("--chk"), type="numeric", default=1, help="[PTgen: 'mvnorm', varE 'random'] heteroscedasticity (covariances) [default %default]",
+              metavar="numeric"),
   make_option(c("-t", "--transf"), type="character", default="none",
               help="Transformation of response variables [default %default]", metavar="numeric"),
   make_option(c("-f", "--fx"), type="character", default=NULL,
@@ -78,6 +82,8 @@ corE <- opt$corE
 b <- opt$b
 ub <- opt$ub
 ploc <- opt$p_loc
+hk <- opt$hk
+chk <- opt$chk
 transf <- opt$transf
 outfile <- opt$output
 
@@ -87,7 +93,7 @@ set.seed(opt$seed)
 
 ## 1. Effect of the SNP
   
-if (hs2 != 0){
+if (hs2 != 0 || hk != 1 || chk != 1){
   
    # Load genotypes
    X <- as.matrix(BEDMatrix(geno, simple_names = T))
@@ -115,14 +121,38 @@ if (hg2 != 0){
 ## 3. Residuals
 
 if(PTgen == 'mvnorm'){
-    sigma <- getCov(q, varE, corE, vEr, if(hs2 != 0 && b == "block"){as.vector(B)}else{rep(1, q)})
-    E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma) 
+  
+    if ( hk != 1 || chk != 1 ) {
+        E <- matrix(NA, n, q)
+        tbl <- table(X)
+        if (length(tbl) > 1){
+            hkv <- c((1+hk)/2, hk)
+            chkv <- c((1+chk)/2, chk)
+            sigma0 <- tcrossprod(matrix(rnorm(q^2), q, q))   
+            sigma1 <- sigma0*hkv[1]/chkv[1]
+            sigma2 <- sigma0*hkv[2]/chkv[2]
+            if (chk != 1) {
+       	       diag(sigma2) <- diag(sigma1) <- diag(sigma0)	
+            } 
+            E[X == 0, ] <- mvrnorm(n = tbl['0'], mu = rep(0, q), Sigma = sigma0)
+            E[X == 1, ] <- mvrnorm(n = tbl['1'], mu = rep(0, q), Sigma = sigma1)
+            if (length(tbl) == 3){
+                E[X == 2, ] <- mvrnorm(n = tbl['2'], mu = rep(0, q), Sigma = sigma2)
+            }
+        } else {
+            E <- matrix(0, n, q) 
+        } 
+    } else {
+        sigma <- getCov(q, varE, corE, vEr, if(hs2 != 0 && b == "block"){as.vector(B)}else{rep(1, q)})
+        E <- mvrnorm(n = n, mu = rep(0, q), Sigma = sigma)
+    }
+
 } else if (PTgen == 'simplex'){
     
     tbl <- read.table(sprintf("%s/qlocstdev.%s.tsv", opt$fx, "norm"), h = T)
     colnames(tbl) <- c("Q", "L", "S")
     if(! q %in% unique(tbl$Q)){
-      stop(sprintf("stdev not precomputed for q = %s", q))
+        stop(sprintf("stdev not precomputed for q = %s", q))
     } 
     stdev <- subset(tbl, Q == q & L == ploc)$S
     
@@ -139,8 +169,10 @@ if(PTgen == 'mvnorm'){
     E <- t(rmultinom(n, N, p))
     
 } else {
+
     sigma <- getCov(q, varE, corE, vEr, if(hs2 != 0 && b == "block"){as.vector(B)}else{rep(1, q)})
     E <- sim.copula(n, sigma, PTgen)
+
 }
 
 E <- E / sqrt(mean(diag(cov(E)))) * sqrt( (1-hs2-hg2) ) # Rescale

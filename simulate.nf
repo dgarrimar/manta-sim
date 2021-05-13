@@ -31,7 +31,7 @@ params.k = 20
 params.c = 10
 params.gemma = true
 
-// PTgen: MVN or copula definition
+// PTgen: MVN, MVT or copula definition
 params.varG = 'random'
 params.varE = 'random'
 params.varGr = 2
@@ -40,9 +40,15 @@ params.corG = 0
 params.corE = 0
 params.b = 'equal'
 params.ub = 2
+params.maf = 0
+
+// PTgen: MVN
+params.hk = 1
+params.chk = 1
 
 // PTgen: simplex (proportions) or multinomial
 params.p_loc = 1
+
 
 /*
  *  Print usage and help
@@ -78,7 +84,7 @@ if (params.help) {
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
-  log.info 'Additional parameters for PTgen mvnorm or copula:'
+  log.info 'Additional parameters for PTgen mvnorm, mvt or copula:'
   log.info ' --varG VARIANCE G           genotype variances: equal, unequal, random (default: equal)'
   log.info ' --varE VARIANCE E           error variances: equal, unequal, random (default: equal)'
   log.info ' --varGr VARIANCE RATIO      max/min ratio between genotype variances [--varG unequal] (default = 2)'
@@ -87,6 +93,9 @@ if (params.help) {
   log.info ' --corE CORRELATION E        error correlations when varE is not random (default: 0)'
   log.info ' --b EFFECT TYPE             type of effects: equal, unequal, block (default: equal)'
   log.info ' --ub EFFECT RATIO           max/min ratio of effects [--b unequal] (default: 2)'
+  log.info ' --hk HETEROSCEDASTIC        variance ratio between minor and major genotype groups [--PTgen mvnorm --varE random] (default: 1)'
+  log.info ' --chk HETEROSCEDASTIC       covariance ratio between minor and major genotype groups [--PTgen mvnorm --varE random] (default: 1)'
+  log.info ' --maf CUSTOM MAF            simulate biallelic SNPs following a binomial model [if 0, dismiss] (default: 0)'
   log.info ''
   log.info 'Additional parameters for PTgen simplex or mutlinomial:'
   log.info ' --p_loc LOCATION            parameter location, 1 is centered (default: 1)'
@@ -139,6 +148,9 @@ if(params.PTgen == 'simplex' || params.PTgen == "multinom"){
   log.info "Correlations (E)             : ${params.corE}"
   log.info "Type of effects              : ${params.b}"
   log.info "Max/min effect ratio         : ${params.ub}"
+  log.info "Heteroscedasticity (var)     : ${params.hk}"
+  log.info "Heteroscedasticity (cov)     : ${params.chk}"
+  log.info "Custom MAF                   : ${params.maf}"
   log.info ''
 }
 
@@ -156,7 +168,7 @@ if (params.p%params.c != 0) {
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','b','ub','p_loc','C','m']){
+  if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','b','ub','p_loc','hk','chk','maf','C','m']){
     grid[it] = params[it]
   }
 }
@@ -308,6 +320,9 @@ process simulate_test {
     each b from grid.b
     each ub from grid.ub
     each p_loc from grid.p_loc
+    each hk from grid.hk
+    each chk from grid.chk
+    each maf from grid.maf
     each C from grid.C
 
     output:
@@ -316,7 +331,7 @@ process simulate_test {
     tuple par_manova, file('manova.assoc.txt') into manova_v_ch
 
     script:
-    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$varGr|$varEr|$corG|$corE|$b|$ub|$p_loc"
+    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$varGr|$varEr|$corG|$corE|$b|$ub|$p_loc|$hk|$chk|$maf"
     par_gemma = "$par|GEMMA"
     par_mlm = "$par|MLM_$C"
     par_manova = "$par|MANOVA_$C" 
@@ -326,39 +341,46 @@ process simulate_test {
        single = grid.C[0]
     }
     if(params.scale == true){scale = "--scale"} else {scale = ""}
+    if(maf != 0){min_maf = "--maf 0.0001"} else {min_maf = ""}
     """ 
     # Manage chunks
     start=\$(( ($c-1)*(${params.p}/${params.c}) + 1 ))
     end=\$(( $c*(${params.p}/${params.c}) ))
  
     for (( v=\$start; v<=(\$end); v++ )); do
-       # Extract single variant
-       sed -n \${v}p $bim | awk '{print \$1"\t"\$4-1"\t"\$4}' > variant.bed
-       plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed --threads 1
+
+       if [[ $maf == 0 ]]; then
+          # Extract single variant
+          sed -n \${v}p $bim | awk '{print \$1"\t"\$4-1"\t"\$4}' > variant.bed
+          plink2 --bfile \$(basename $bed | sed 's/.bed//') --extract bed0 variant.bed --out geno --make-bed --threads 1
+       else 
+          binGT.R -s \$v -n $n -m $maf -o dummy.vcf
+          plink2 --vcf dummy.vcf --make-bed --out geno
+       fi
 
        # Double check that is unique
        if [[ \$(cat geno.bim | wc -l) -gt 1 ]]; then continue; fi
  
        # Simulate phenotype
-       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --vGr $varGr --vEr $varEr --corG $corG --corE $corE --b $b --ub $ub --p_loc $p_loc -t ${params.t} -o pheno.txt --fx ${params.fx} 
+       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --vGr $varGr --vEr $varEr --corG $corG --corE $corE --b $b --ub $ub --p_loc $p_loc -t ${params.t} --hk $hk --chk $chk -o pheno.txt --fx ${params.fx} 
 
        # Run MLM/MANOVA
        if [[ $C == 'PCA' ]]; then
-          mlm.R -p pheno.txt -g geno -c $eigenval -k ${params.k} --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale
+          mlm.R -p pheno.txt -g geno -c $eigenval -k ${params.k} --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale $min_maf
        else 
-          mlm.R -p pheno.txt -g geno --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale 
+          mlm.R -p pheno.txt -g geno --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale $min_maf 
        fi
 
        # Run GEMMA once
        if [[ ${params.gemma} == true && $single == $C ]]; then
           export OPENBLAS_NUM_THREADS=1
           paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
-          (timeout 120 gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v &> STATUS || exit 0)
+          (timeout 120 gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v $min_maf &> STATUS || exit 0)
           if [[ \$(grep ERROR STATUS) ]]; then
              touch gemma_\$v.assoc.txt
              continue
           else
-             gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v
+             gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v $min_maf
              sed '1d' gemma_\$v.assoc.txt | awk '{print \$2"\t"\$NF}' > tmpfile; mv tmpfile gemma_\$v.assoc.txt
           fi
        fi
@@ -415,7 +437,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tVarG\tVarE\tVarGr\tVarEr\tcorG\tcorE\tb\tub\tp_loc\tmethod\tmtc\ttie\\n/" $sim
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tVarG\tVarE\tVarGr\tVarEr\tcorG\tcorE\tb\tub\tp_loc\thk\tchk\tmaf\tmethod\tmtc\ttie\\n/" $sim
    """
 }
 

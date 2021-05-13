@@ -34,7 +34,8 @@ getBeta <- function(q, b = "equal", ub = 2, fr = 0.75){
 getCov <- function(q, v, c, u, B, tol = 1e-10){
   
   if (v == 'random') {
-    return(tcrossprod(matrix(rnorm(q^2), q, q)))
+    sigma <- tcrossprod(matrix(rnorm(q^2), q, q))
+    return(sigma)
   } else if(v == 'equal'){
     vars <- rep(1, q)
   } else if (v == 'unequal'){

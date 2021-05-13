@@ -18,6 +18,8 @@ option_list = list(
               help="Covariates (genotype PCs computed by plink2) [default %default]", metavar="character"),
   make_option(c("-k", "--number"), type="numeric", default=20,
               help="Number of PCs used to correct", metavar="numeric"),
+  make_option(c("--maf"), type="numeric", default=0.01,
+	      help="MAF threshold", metavar="numeric"),
   make_option(c("--mlm"), type="character", 
               help="Output (MLM p-values) file name)", metavar="character"),
   make_option(c("--manova"), type="character",
@@ -69,8 +71,8 @@ maf <- apply(X, 2, function(x){
    return(min(maf, 1-maf))
 })
 
-X <- X[, maf >= 0.01, drop = F]
-id <- id[maf >= 0.01]
+X <- X[, maf >= opt$maf, drop = F]
+id <- id[maf >= opt$maf]
 t1_maf = Sys.time()
 
 if(length(id) == 0){
