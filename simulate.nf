@@ -29,6 +29,7 @@ params.scale = false
 params.C = 'none'
 params.k = 20
 params.c = 10
+params.gemma = true
 
 // PTgen: MVN or copula definition
 params.varG = 'random'
@@ -73,6 +74,7 @@ if (params.help) {
   log.info ' --scale SCALE               [WARN] scale the response variables for MLM/MANOVA (default: false)'
   log.info ' --c NUMBER CHUNKS           number of chunks (default: 10)'
   log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
+  log.info ' --gemma GEMMA               run GEMMA in addition to MLM and MANOVA (default: true)'
   log.info ' --dir OUTPUT DIR            output directory (default: result)'
   log.info ' --out OUTPUT                output file (default: simulation.tsv)'
   log.info ''
@@ -117,6 +119,7 @@ log.info "Scale responses [WARN]       : ${params.scale}"
 log.info "Number of PCs                : ${params.k}"
 log.info "Number of chunks             : ${params.c}"
 log.info "Helper functions             : ${params.fx}"
+log.info "Run GEMMA                    : ${params.gemma}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
@@ -347,7 +350,7 @@ process simulate_test {
        fi
 
        # Run GEMMA once
-       if [[ $single == $C ]]; then
+       if [[ ${params.gemma} == true && $single == $C ]]; then
           export OPENBLAS_NUM_THREADS=1
           paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
           (timeout 120 gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v &> STATUS || exit 0)
@@ -363,7 +366,7 @@ process simulate_test {
     done
     cat mlm_*.assoc.txt > mlm.assoc.txt
     cat manova_*.assoc.txt > manova.assoc.txt
-    if [[ $single == $C ]]; then
+    if [[ ${params.gemma} == true && $single == $C ]]; then
        cat gemma_*.assoc.txt > gemma.assoc.txt
     fi
     """
