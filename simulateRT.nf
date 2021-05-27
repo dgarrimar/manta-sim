@@ -22,6 +22,8 @@ params.hg2 = 0.2
 params.seed = 123
 params.r = 1
 params.t = 1
+params.gemma = true
+params.fx = "$baseDir/supp"
 params.help = false
 
 /*
@@ -32,7 +34,7 @@ if (params.help) {
   log.info ''
   log.info 'SIMULATE RT'
   log.info '======================================================================='
-  log.info 'Benchmark running time of GEMMA and MLM in a simulation using real GT data'
+  log.info 'Benchmark running time of MLM, GEMMA and MANOVA in a simulation using real GT data'
   log.info ''
   log.info 'Usage: '
   log.info '    nextflow run simulateRT.nf [options]'
@@ -50,6 +52,8 @@ if (params.help) {
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
   log.info ' --t OPENBLAS THREADS        OpenBLAS number of threads (default: 1)'
+  log.info ' --gemma GEMMA               run GEMMA in addition to MLM and MANOVA (default: true)'
+  log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
   log.info ' --out OUTPUT                output file prefix (default: simulationRT.tsv)'
   log.info ''
@@ -75,6 +79,8 @@ log.info "Relatedness heritability     : ${params.hg2}"
 log.info "Replicate number             : ${params.r}"
 log.info "OpenBLAS number of threads   : ${params.t}"
 log.info "Seed                         : ${params.seed}"
+log.info "Run GEMMA                    : ${params.gemma}"
+log.info "Helper functions             : ${params.fx}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
 log.info ''
@@ -250,13 +256,19 @@ process simulatePT {
     script:
     """ 
     # Simulate phenotype
-    simulatePT.R -s $r -n $n -q $q --geno $prefix --kinship $kinship --hg2 ${params.hg2} -o pheno.txt
+    simulatePT.R -s $r -n $n -q $q --geno $prefix --kinship $kinship --hg2 ${params.hg2} --fx ${params.fx} -o pheno.txt
     """
 }
 
 /*
  *  Timing
  */
+
+if (params.gemma){
+    methods_ch = Channel.fromList(["MLM", "GEMMA"])
+} else {
+    methods_ch = Channel.fromList(["MLM"])
+} 
 
 process time {
 
@@ -266,7 +278,7 @@ process time {
 
     input:
     tuple val(n), val(q), val(r), val(prefix), file(bed),file(bim),file(fam),file(pcs),file(kinship),file(pheno) from totime_ch
-    each method from Channel.fromList(["GEMMA","MLM"])
+    each method from methods_ch
    
     output:
     file("runtime.txt") into out_ch
@@ -287,9 +299,9 @@ process time {
         echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
     fi
     """
-    }  else if (method == "MLM") {
+    } else {
     """
-    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
+    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --manova manova.assoc.txt --runtime -i $r > runtime.txt
     """
     }
 }

@@ -149,7 +149,12 @@ if (opt$runtime){
     t_mlm <- as.numeric(difftime(t1_mlm, t0_mlm, units = "secs"))
     cat(sprintf("%s\t%s\t%s\t%s\tmlm\t%s\n", N, Q, R, 'MLM', round(t_mlm)))
     if(!is.null(opt$manova)){
+        cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, 'MANOVA', round(t_readXY)))
+        cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, 'MANOVA', round(t_maf)))
+        if (!is.null(covariate_file)){
+            cat(sprintf("%s\t%s\t%s\t%s\tcov\t%s\n", N, Q, R, 'MANOVA', round(t_cov)))
+        }
         t_manova <- as.numeric(difftime(t1_manova, t0_manova, units = "secs"))
-        cat(sprintf("%s\t%s\t%s\t%s\tmanova\t%s\n", N, Q, R, 'MLM', round(t_manova)))
+        cat(sprintf("%s\t%s\t%s\t%s\tmanova\t%s\n", N, Q, R, 'MANOVA', round(t_manova))) 
     }
 }
