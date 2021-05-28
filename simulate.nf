@@ -341,7 +341,7 @@ process simulate_test {
        single = grid.C[0]
     }
     if(params.scale == true){scale = "--scale"} else {scale = ""}
-    if(maf != 0){min_maf = "--maf 0.0001"} else {min_maf = ""}
+    if(maf != 0){min_maf = "-maf 0.0001"} else {min_maf = ""}
     """ 
     # Manage chunks
     start=\$(( ($c-1)*(${params.p}/${params.c}) + 1 ))
@@ -366,9 +366,9 @@ process simulate_test {
 
        # Run MLM/MANOVA
        if [[ $C == 'PCA' ]]; then
-          mlm.R -p pheno.txt -g geno -c $eigenval -k ${params.k} --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale $min_maf
+          mlm.R -p pheno.txt -g geno -c $eigenval -k ${params.k} --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale -$min_maf
        else 
-          mlm.R -p pheno.txt -g geno --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale $min_maf 
+          mlm.R -p pheno.txt -g geno --mlm mlm_\$v.assoc.txt --manova manova_\$v.assoc.txt $scale -$min_maf 
        fi
 
        # Run GEMMA once
