@@ -199,7 +199,9 @@ process simulateGT {
     end=\$(date +%s)
     touch runtime.pca.txt
     for q in {${params.q},}; do
-        echo -e "$n\t\$q\t$r\tMLM\tpca\t\$((end-start))" >> runtime.pca.txt
+        for method in {MLM,MANOVA}; do
+            echo -e "$n\t\$q\t$r\t\$method\tpca\t\$((end-start))" >> runtime.pca.txt
+        done
     done
     """
 }
