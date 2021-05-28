@@ -255,6 +255,7 @@ process simulatePT {
 
     script:
     """ 
+    export R_DATATABLE_NUM_THREADS=1
     # Simulate phenotype
     simulatePT.R -s $r -n $n -q $q --geno $prefix --kinship $kinship --hg2 ${params.hg2} --fx ${params.fx} -o pheno.txt
     """
@@ -301,6 +302,7 @@ process time {
     """
     } else {
     """
+    export R_DATATABLE_NUM_THREADS=1
     mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --manova manova.assoc.txt --runtime -i $r > runtime.txt
     """
     }
