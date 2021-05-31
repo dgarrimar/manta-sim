@@ -19,7 +19,7 @@ option_list = list(
   make_option(c("-k", "--number"), type="numeric", default=20,
               help="Number of PCs used to correct", metavar="numeric"),
   make_option(c("--maf"), type="numeric", default=0.01,
-	      help="MAF threshold", metavar="numeric"),
+	            help="MAF threshold", metavar="numeric"),
   make_option(c("--mlm"), type="character", 
               help="Output (MLM p-values) file name)", metavar="character"),
   make_option(c("--manova"), type="character",

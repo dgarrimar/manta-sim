@@ -341,7 +341,7 @@ process simulate_test {
        single = grid.C[0]
     }
     if(params.scale == true){scale = "--scale"} else {scale = ""}
-    if(maf != 0){min_maf = "-maf 0.0001"} else {min_maf = ""}
+    if(maf != 0){min_maf = "-maf 0.0001"} else {min_maf = "-maf 0.01"}
     """ 
     # Manage chunks
     start=\$(( ($c-1)*(${params.p}/${params.c}) + 1 ))
