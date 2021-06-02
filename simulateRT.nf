@@ -23,6 +23,7 @@ params.seed = 123
 params.r = 1
 params.t = 1
 params.gemma = true
+params.manova = true
 params.fx = "$baseDir/supp"
 params.help = false
 
@@ -52,7 +53,8 @@ if (params.help) {
   log.info ' --s SEED                    seed (default: 123)'
   log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
   log.info ' --t OPENBLAS THREADS        OpenBLAS number of threads (default: 1)'
-  log.info ' --gemma GEMMA               run GEMMA in addition to MLM and MANOVA (default: true)'
+  log.info ' --gemma GEMMA               run GEMMA in addition to MLM (default: true)'
+  log.info ' --manova MANOVA             run MANOVA in addition to MLM (default: true)'
   log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
   log.info ' --dir DIRECTORY             output directory (default: result)'
   log.info ' --out OUTPUT                output file prefix (default: simulationRT.tsv)'
@@ -80,6 +82,7 @@ log.info "Replicate number             : ${params.r}"
 log.info "OpenBLAS number of threads   : ${params.t}"
 log.info "Seed                         : ${params.seed}"
 log.info "Run GEMMA                    : ${params.gemma}"
+log.info "Run MANOVA                   : ${params.manova}"
 log.info "Helper functions             : ${params.fx}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
@@ -267,9 +270,13 @@ process simulatePT {
  *  Timing
  */
 
-if (params.gemma){
+if (params.gemma & params.manova){
+    methods_ch = Channel.fromList(["MLM", "GEMMA", "MANOVA"]) 
+} else if (!params.gemma & params.manova) {
+    methods_ch = Channel.fromList(["MLM", "MANOVA"])
+} else if (params.gemma & !params.manova) {
     methods_ch = Channel.fromList(["MLM", "GEMMA"])
-} else {
+} else if (!params.gemma & !params.manova) {
     methods_ch = Channel.fromList(["MLM"])
 } 
 
@@ -302,10 +309,15 @@ process time {
         echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
     fi
     """
-    } else {
+    } else if (method == "MLM"){
     """
     export R_DATATABLE_NUM_THREADS=1
-    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --manova manova.assoc.txt --runtime -i $r > runtime.txt
+    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
+    """
+    } else if (method == "MANOVA"){
+    """
+    export R_DATATABLE_NUM_THREADS=1
+    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --manova manova.assoc.txt --runtime -i $r > runtime.txt
     """
     }
 }

@@ -35,7 +35,7 @@ option_list = list(
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
 
-if (is.null (opt$geno) || is.null (opt$pheno) || is.null(opt$mlm) ){
+if (is.null (opt$geno) || is.null (opt$pheno)){
     print_help(opt_parser)
     stop("Required I/O files must be supplied\n", call.=FALSE)
 }
@@ -98,22 +98,24 @@ if(opt$scale){ # WARNING: Asymptotic null may not hold
     Y <- scale(Y)
 }
 
-t0_mlm <- Sys.time()
 p <- ncol(X)
-res <- rep(NA, p)
-if (is.null(covariate_file)){
-    for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
-    }
-} else {
-    for (snp in 1:p) {
-        res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(covariates, snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, 
-                              error = function(e){return(NA)} )
-    }
-} 
-res <- cbind.data.frame(id, res)
-write.table(res, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
-t1_mlm <- Sys.time()
+if(!is.null(opt$mlm)){
+    t0_mlm <- Sys.time()
+    res <- rep(NA, p)
+    if (is.null(covariate_file)){
+        for (snp in 1:p) {
+            res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, error = function(e){return(NA)} )
+        }
+    } else {
+        for (snp in 1:p) {
+            res[snp] <- tryCatch( {mlm(Y ~ ., data = data.frame(covariates, snp = X[, snp]), type = "I", subset = "snp")$aov.tab[1,6]}, 
+                                  error = function(e){return(NA)} )
+        }
+    } 
+    res <- cbind.data.frame(id, res)
+    write.table(res, file = opt$mlm, col.names = F, row.names = F, quote = F, sep = "\t")
+    t1_mlm <- Sys.time()
+}
 
 if(!is.null(opt$manova)){
     t0_manova <- Sys.time()
@@ -139,15 +141,19 @@ if (opt$runtime){
     Q <- ncol(Y)
     R <- opt$id_replicate
     t_readXY <- as.numeric(difftime(t1_readXY, t0_readXY, units = "secs"))
-    cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, 'MLM', round(t_readXY)))
     t_maf <- as.numeric(difftime(t1_maf, t0_maf, units = "secs"))
-    cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, 'MLM', round(t_maf)))
     if (!is.null(covariate_file)){
         t_cov <- as.numeric(difftime(t1_cov, t0_cov, units = "secs"))
-        cat(sprintf("%s\t%s\t%s\t%s\tcov\t%s\n", N, Q, R, 'MLM', round(t_cov)))
     }
-    t_mlm <- as.numeric(difftime(t1_mlm, t0_mlm, units = "secs"))
-    cat(sprintf("%s\t%s\t%s\t%s\tmlm\t%s\n", N, Q, R, 'MLM', round(t_mlm)))
+    if(!is.null(opt$mlm)){
+        cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, 'MLM', round(t_readXY)))
+        cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, 'MLM', round(t_maf)))
+        if (!is.null(covariate_file)){
+            cat(sprintf("%s\t%s\t%s\t%s\tcov\t%s\n", N, Q, R, 'MLM', round(t_cov)))
+        }
+        t_mlm <- as.numeric(difftime(t1_mlm, t0_mlm, units = "secs"))
+        cat(sprintf("%s\t%s\t%s\t%s\tmlm\t%s\n", N, Q, R, 'MLM', round(t_mlm)))
+    }
     if(!is.null(opt$manova)){
         cat(sprintf("%s\t%s\t%s\t%s\tread_XY\t%s\n", N, Q, R, 'MANOVA', round(t_readXY)))
         cat(sprintf("%s\t%s\t%s\t%s\tmaf\t%s\n", N, Q, R, 'MANOVA', round(t_maf)))
