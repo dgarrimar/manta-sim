@@ -29,27 +29,29 @@ option_list = list(
   make_option(c("--hg2"), type="numeric", default=0,
               help="Average fraction of variance explained by causal variants across traits [default %default]", metavar="numeric"),
   make_option(c("--varG"), type="character", default="random",
-              help="[PTgen: mvnorm, copula] Genetic variances: 'equal', 'unequal', 'random' [default %default]", metavar="character"),
+              help="[PTgen: mvnorm, mvt, copula] Genetic variances: 'equal', 'unequal', 'random' [default %default]", metavar="character"),
   make_option(c("--varE"), type="character", default="random",
-              help="[PTgen: mvnorm, copula] Error variances: 'equal', 'unequal', 'random' [default %default]", metavar="character"),
+              help="[PTgen: mvnorm, mvt, copula] Error variances: 'equal', 'unequal', 'random' [default %default]", metavar="character"),
   make_option(c("--vGr"), type="character", default=2,
-              help="[PTgen: mvnorm, copula; varG: unequal] max/min ratio of genetic variances [default %default]", metavar="numeric"),
+              help="[PTgen: mvnorm, mvt, copula; varG: unequal] max/min ratio of genetic variances [default %default]", metavar="numeric"),
   make_option(c("--vEr"), type="character", default=2,
-              help="[PTgen: mvnorm, copula; varE: unequal] max/min ratio of error variances [default %default]", metavar="numeric"),
+              help="[PTgen: mvnorm, mvt, copula; varE: unequal] max/min ratio of error variances [default %default]", metavar="numeric"),
   make_option(c("--corG"), type="numeric", default=0,
-              help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Genetic correlations [default %default]", metavar="numeric"),
+              help="[PTgen: mvnorm, mvt, copula & varG not random] Genetic correlations [default %default]", metavar="numeric"),
   make_option(c("--corE"), type="numeric", default=0,
-              help="[PTgen: 'mvnorm', 'copula' & varG not 'random'] Error correlations [default %default]", metavar="numeric"),
+              help="[PTgen: 'mvnorm', 'copula' & varG not random] Error correlations [default %default]", metavar="numeric"),
   make_option(c("--b"), type="character", default="equal",
-              help="[PTgen: mvnorm, copula] Effect type: 'equal', 'unequal', 'block' [default %default]", metavar="character"),
+              help="[PTgen: mvnorm, mvt, copula] Effect type: 'equal', 'unequal', 'block' [default %default]", metavar="character"),
   make_option(c("--ub"), type="character", default=2,
-              help="[PTgen: mvnorm, copula; b: unequal] max/min effect ratio [default %default]", metavar="numeric"),
+              help="[PTgen: mvnorm, mvt, copula; b: unequal] max/min effect ratio [default %default]", metavar="numeric"),
+  make_option(c("-a", "--affected"), type="character",
+              help="[PTgen: mvnorm, mvt, copula; b: equal] number of responses affected [default %default]", metavar="numeric"),
   make_option(c("-p","--p_loc"), type="numeric", default=1,
-              help="[PTgen: 'simplex', 'multinom'] parameter location [default %default]", 
+              help="[PTgen: simplex, multinom] parameter location [default %default]", 
               metavar="numeric"),
-  make_option(c("--hk"), type="numeric", default=1, help="[PTgen: 'mvnorm', varE: 'random'] heteroscedasticity (variances) [default %default]", 
+  make_option(c("--hk"), type="numeric", default=1, help="[PTgen: mvnorm, varE: random] heteroscedasticity (variances) [default %default]", 
               metavar="numeric"),
-  make_option(c("--chk"), type="numeric", default=1, help="[PTgen: 'mvnorm', varE 'random'] heteroscedasticity (covariances) [default %default]",
+  make_option(c("--chk"), type="numeric", default=1, help="[PTgen: mvnorm, varE: random] heteroscedasticity (covariances) [default %default]",
               metavar="numeric"),
   make_option(c("-t", "--transf"), type="character", default="none",
               help="Transformation of response variables [default %default]", metavar="numeric"),
@@ -82,11 +84,14 @@ vEr <- opt$vEr
 corE <- opt$corE
 b <- opt$b
 ub <- opt$ub
+a <- opt$affected
+if(is.null(a)) a <- q
 ploc <- opt$p_loc
 hk <- opt$hk
 chk <- opt$chk
 transf <- opt$transf
 outfile <- opt$output
+
 
 source(sprintf("%s/fx.R", opt$fx))
 
@@ -100,7 +105,7 @@ if (hs2 != 0 || hk != 1 || chk != 1){
    X <- as.matrix(BEDMatrix(geno, simple_names = T))
 
    # Generate effects
-   B <- getBeta(q, if(PTgen %in% c("simplex", "multinom")){PTgen}else{b})
+   B <- getBeta(q, if(PTgen %in% c("simplex", "multinom")){PTgen}else{b}, ub, a)
    
    XB <- X %*% B 
    XB <- XB / sqrt(mean(diag(cov(XB)))) * sqrt(hs2) # Rescale

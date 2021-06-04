@@ -16,11 +16,13 @@ rmatnorm_C <- function(M, U, V, tol = 1e-12){
   return(M + crossprod(L1, Z) %*% L2)
 }
 
-getBeta <- function(q, b = "equal", ub = 2, fr = 0.75){ 
+getBeta <- function(q, b = "equal", ub = 2, a = q, fr = 0.75){ 
   
   # Generate effects
-  if(b == "equal"){
-    return(matrix(rep(1,q), 1, q))
+  if(b == "equal"){ # a <= q
+    B <- rep(0, q)
+    B[1:a] <- 1
+    return(matrix(B, 1, q))
   } else if (b == "unequal"){
     return(matrix(seq(from = 1, to = ub, length.out = q), 1, q))
   } else if (b == "block"){

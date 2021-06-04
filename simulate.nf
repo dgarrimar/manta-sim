@@ -41,6 +41,7 @@ params.corG = 0
 params.corE = 0
 params.b = 'equal'
 params.ub = 2
+params.a = params.q
 
 // PTgen: MVN
 params.hk = 1
@@ -94,6 +95,7 @@ if (params.help) {
   log.info ' --corE CORRELATION E        error correlations when varE is not random (default: 0)'
   log.info ' --b EFFECT TYPE             type of effects: equal, unequal, block (default: equal)'
   log.info ' --ub EFFECT RATIO           max/min ratio of effects [--b unequal] (default: 2)'
+  log.info ' --a NUMBER AFFECTED         number of responses affected by causal variant when --h2s is not 0 [--b equal] (default: 3)
   log.info ''
   log.info 'Additional parameters for PTgen mvnorm:'
   log.info ' --hk HETEROSCEDASTIC        variance ratio between minor and major genotype groups [--varE random] (default: 1)'
@@ -150,6 +152,7 @@ if(params.PTgen == 'simplex' || params.PTgen == "multinom"){
   log.info "Correlations (E)             : ${params.corE}"
   log.info "Type of effects              : ${params.b}"
   log.info "Max/min effect ratio         : ${params.ub}"
+  log.info "Number of responses affected : ${params.a}"
   if (params.PTgen == "mvnorm") {
     log.info "Heteroscedasticity (var)     : ${params.hk}"
     log.info "Heteroscedasticity (cov)     : ${params.chk}"
@@ -171,7 +174,7 @@ if (params.p%params.c != 0) {
 
 def grid = [:]
 params.keySet().each{
-  if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','b','ub','p_loc','hk','chk','maf','C','m']){
+  if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','b','ub','p_loc','hk','chk','maf','C','m','a']){
     grid[it] = params[it]
   }
 }
@@ -327,6 +330,7 @@ process simulate_test {
     each chk from grid.chk
     each maf from grid.maf
     each C from grid.C
+    each a from grid.a
 
     output:
     tuple par_gemma, file('gemma.assoc.txt') optional true into gemma_v_ch
@@ -334,7 +338,7 @@ process simulate_test {
     tuple par_manova, file('manova.assoc.txt') into manova_v_ch
 
     script:
-    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$varGr|$varEr|$corG|$corE|$b|$ub|$p_loc|$hk|$chk|$maf"
+    par = "$n|$q|$PTgen|$GTgen|$hs2|$hg2|$varG|$varE|$varGr|$varEr|$corG|$corE|$b|$ub|$p_loc|$hk|$chk|$maf|$a"
     par_gemma = "$par|GEMMA"
     par_mlm = "$par|MLM_$C"
     par_manova = "$par|MANOVA_$C" 
@@ -365,7 +369,7 @@ process simulate_test {
        if [[ \$(cat geno.bim | wc -l) -gt 1 ]]; then continue; fi
  
        # Simulate phenotype
-       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --vGr $varGr --vEr $varEr --corG $corG --corE $corE --b $b --ub $ub --p_loc $p_loc -t ${params.t} --hk $hk --chk $chk -o pheno.txt --fx ${params.fx} 
+       simulatePT.R -s \$v -n $n -q $q --PTgen $PTgen --geno geno --kinship $kinship --hs2 $hs2 --hg2 $hg2 --varG $varG --varE $varE --vGr $varGr --vEr $varEr --corG $corG --corE $corE --b $b --ub $ub --p_loc $p_loc -t ${params.t} --hk $hk --chk $chk -o pheno.txt --fx ${params.fx} -a $a
 
        # Run MLM/MANOVA
        if [[ $C == 'PCA' ]]; then
@@ -440,7 +444,7 @@ process end {
 
    script:
    """
-   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tVarG\tVarE\tVarGr\tVarEr\tcorG\tcorE\tb\tub\tp_loc\thk\tchk\tmaf\tmethod\tmtc\ttie\\n/" $sim
+   sed -i "1 s/^/n\tq\tPTgen\tGTgen\ths2\thg2\tVarG\tVarE\tVarGr\tVarEr\tcorG\tcorE\tb\tub\tp_loc\thk\tchk\tmaf\ta\tmethod\tmtc\ttie\\n/" $sim
    """
 }
 
