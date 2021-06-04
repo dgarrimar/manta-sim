@@ -37,7 +37,7 @@ RUN git clone --depth=1 -b v1.0.0 https://github.com/libgit2/libgit2.git ~/libgi
     && cp -r ~/libgit2/* /usr/local
 
 ## Install R packages
-RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula", "R.utils"), repos="http://cloud.r-project.org/")'
+RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula", "R.utils", "mvnfast"), repos="http://cloud.r-project.org/")'
 
 ## Install python3 packages
 RUN pip3 install pandas scipy
@@ -66,13 +66,6 @@ RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/
     && gunzip gemma-0.98.3-linux-static.gz \
     && chmod +x gemma-0.98.3-linux-static \
     && mv gemma-0.98.3-linux-static /usr/local/bin/gemma
-
-## Install BOLT-LMM
-RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4.tar.gz \
-    && tar zxf BOLT-LMM_v2.3.4.tar.gz \
-    && cd BOLT-LMM_v2.3.4 \
-    && chmod +x bolt \
-    && ln -s $PWD/bolt /usr/local/bin/
 
 ## Install mlm
 RUN R -e 'devtools:::install_github("dgarrimar/mlm")'

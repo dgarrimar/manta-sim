@@ -95,7 +95,7 @@ if (params.help) {
   log.info ' --corE CORRELATION E        error correlations when varE is not random (default: 0)'
   log.info ' --b EFFECT TYPE             type of effects: equal, unequal, block (default: equal)'
   log.info ' --ub EFFECT RATIO           max/min ratio of effects [--b unequal] (default: 2)'
-  log.info ' --a NUMBER AFFECTED         number of responses affected by causal variant when --h2s is not 0 [--b equal] (default: 3)
+  log.info ' --a NUMBER AFFECTED         number of responses affected by causal variant when --h2s is not 0 [--b equal] (default: 3)'
   log.info ''
   log.info 'Additional parameters for PTgen mvnorm:'
   log.info ' --hk HETEROSCEDASTIC        variance ratio between minor and major genotype groups [--varE random] (default: 1)'
