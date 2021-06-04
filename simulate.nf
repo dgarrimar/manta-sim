@@ -93,11 +93,13 @@ if (params.help) {
   log.info ' --corE CORRELATION E        error correlations when varE is not random (default: 0)'
   log.info ' --b EFFECT TYPE             type of effects: equal, unequal, block (default: equal)'
   log.info ' --ub EFFECT RATIO           max/min ratio of effects [--b unequal] (default: 2)'
-  log.info ' --hk HETEROSCEDASTIC        variance ratio between minor and major genotype groups [--PTgen mvnorm --varE random] (default: 1)'
-  log.info ' --chk HETEROSCEDASTIC       covariance ratio between minor and major genotype groups [--PTgen mvnorm --varE random] (default: 1)'
   log.info ' --maf CUSTOM MAF            simulate biallelic SNPs following a binomial model [if 0, dismiss] (default: 0)'
   log.info ''
-  log.info 'Additional parameters for PTgen simplex or mutlinomial:'
+  log.info 'Additional parameters for PTgen mvnorm:'
+  log.info ' --hk HETEROSCEDASTIC        variance ratio between minor and major genotype groups [--varE random] (default: 1)'
+  log.info ' --chk HETEROSCEDASTIC	 covariance ratio between minor and major genotype groups [--varE random] (default: 1)'
+  log.info ''
+  log.info 'Additional parameters for PTgen simplex or multinomial:'
   log.info ' --p_loc LOCATION            parameter location, 1 is centered (default: 1)'
   log.info ''
   exit(1)
@@ -136,8 +138,7 @@ if(params.PTgen == 'simplex' || params.PTgen == "multinom"){
   log.info 'Additional parameters'
   log.info '---------------------'
   log.info "Parameter location           : ${params.p_loc}"
-  log.info ''
-} else{
+} else {
   log.info 'Additional parameters'
   log.info '---------------------'
   log.info "Variances (G)                : ${params.varG}"
@@ -148,11 +149,13 @@ if(params.PTgen == 'simplex' || params.PTgen == "multinom"){
   log.info "Correlations (E)             : ${params.corE}"
   log.info "Type of effects              : ${params.b}"
   log.info "Max/min effect ratio         : ${params.ub}"
-  log.info "Heteroscedasticity (var)     : ${params.hk}"
-  log.info "Heteroscedasticity (cov)     : ${params.chk}"
   log.info "Custom MAF                   : ${params.maf}"
-  log.info ''
+  if (params.PTgen == "mvnorm") {
+    log.info "Heteroscedasticity (var)     : ${params.hk}"
+    log.info "Heteroscedasticity (cov)     : ${params.chk}"
+  }
 }
+log.info ''
 
 /*
  *  Checks
