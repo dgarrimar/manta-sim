@@ -27,7 +27,7 @@ params.hg2 = 0
 params.t = 'none'
 params.scale = false
 params.C = 'none'
-params.k = 20
+params.k = 5
 params.c = 10
 params.gemma = true
 
