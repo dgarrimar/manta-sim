@@ -9,6 +9,7 @@ library(MASS)
 library(data.table)
 library(BEDMatrix)
 library(copula)
+library(mvnfast)
 
 option_list = list(
   make_option(c("-s","--seed"), type="numeric", default=0,
@@ -167,6 +168,11 @@ if(PTgen == 'mvnorm'){
     p <- x/sum(x)
     N <- 1000
     E <- t(rmultinom(n, N, p))
+
+} else if ( grepl('t-\\d', PTgen) ) {
+   
+    sigma <- getCov(q, varE, corE, vEr, if(hs2 != 0 && b == "block"){as.vector(B)}else{rep(1, q)})
+    E <- rmvt(n, rep(0, q), sigma, df = as.numeric(unlist(strsplit(PTgen, split = "-"))[2]))
     
 } else {
 
