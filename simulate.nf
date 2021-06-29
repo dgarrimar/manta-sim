@@ -29,6 +29,7 @@ params.k = 20
 params.c = 10
 params.delta = 0
 params.hk = 1
+params.gemma = true
 
 // Generation: multivariate normal or copula
 params.y_var = 'equal'
@@ -78,6 +79,7 @@ if (params.help) {
   log.info ' --delta DELTA               change in H1 (default: 0.1)'
   log.info ' --hk HETEROSKEDASTICITY     heteroskedasticity, 1 is homoskedastic (default: 1)'
   log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
+  log.info ' --gemma GEMMA               run GEMMA in addition to MLM and MANOVA (default: true)'
   log.info ''
   log.info 'Additional parameters for PTgen = mvnorm:'
   log.info ' --y_var VARIANCE            variance of response variables: equal or unequal (default: equal)'
@@ -127,6 +129,7 @@ log.info "Heteroskedasticity           : ${params.hk}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info "Helper functions             : ${params.fx}"
+log.info "Run GEMMA                    : ${params.gemma}"
 log.info ''
 
 if(params.PTgen == 'mvnorm'){
@@ -361,7 +364,7 @@ process simulate_test {
        fi
 
        # Run GEMMA once
-       if [[ $single == $C ]]; then
+       if [[ ${params.gemma} == true && $single == $C ]]; then
           export OPENBLAS_NUM_THREADS=1
           paste <(cut -f1-5 geno.fam) pheno.txt > tmpfile; mv tmpfile geno.fam
           (timeout 120 gemma -lmm -b geno -k $kinship -n $pids -outdir . -o gemma_\$v &> STATUS || exit 0)
@@ -377,7 +380,7 @@ process simulate_test {
     done
     cat mlm_*.assoc.txt > mlm.assoc.txt
     cat manova_*.assoc.txt > manova.assoc.txt
-    if [[ $single == $C ]]; then
+    if [[ ${params.gemma} == true && $single == $C ]]; then
        cat gemma_*.assoc.txt > gemma.assoc.txt
     fi
     """
