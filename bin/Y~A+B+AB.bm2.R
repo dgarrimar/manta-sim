@@ -164,8 +164,8 @@ if (chunk != 0) {
       
     } else if (modelSim == "multinom") {
       
-      N <- rpois(1, lambda)
-      Y <- Sim.multinom(ch, q, n, N, delta, loc)
+#      N <- rpois(1, lambda)
+      Y <- Sim.multinom(ch, q, n, lambda, delta, loc)
       
     } else if (modelSim == "copula") {
       
@@ -241,8 +241,8 @@ if (chunk != 0) {
     
   } else if (modelSim == "multinom") {
     
-    N <- rpois(1, lambda)
-    Y <- Sim.multinom(ch, q, n, N, delta, loc)
+#      N <- rpois(1, lambda)
+    Y <- Sim.multinom(ch, q, n, lambda, delta, loc)
     
   } else if (modelSim == "copula") {
     
