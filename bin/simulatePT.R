@@ -160,8 +160,8 @@ if(maf < 0.01) {
     
   } else if (modelSim == "multinom") {
     
-    N <- rpois(1, lambda)
-    Y <- Sim.multinom(ch, q, n, N, delta, loc)
+#    N <- rpois(1, lambda)
+    Y <- Sim.multinom(ch, q, n, lambda, delta, loc)
     
   } else if (modelSim == "copula") {
     
