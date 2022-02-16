@@ -67,8 +67,8 @@ RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/
     && chmod +x gemma-0.98.3-linux-static \
     && mv gemma-0.98.3-linux-static /usr/local/bin/gemma
 
-## Install mlm
-RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
+## Install MANTA
+RUN R -e 'devtools:::install_github("dgarrimar/manta")'
 
 ## Change ENTRYPOINT
 ENTRYPOINT /bin/bash

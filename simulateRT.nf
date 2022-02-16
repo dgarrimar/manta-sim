@@ -3,11 +3,11 @@
  * Diego Garrido Martín 
  */
 
+
 /*
  *  Define parameters
  */
 
-// General params
 params.genotype = 'data/genotypes.vcf.gz'
 params.metadata = 'data/metadata.tsv'
 params.dir = 'result'
@@ -27,40 +27,42 @@ params.manova = true
 params.fx = "$baseDir/supp"
 params.help = false
 
+
 /*
  *  Print usage and help
  */
 
 if (params.help) {
-  log.info ''
-  log.info 'SIMULATE RT'
-  log.info '======================================================================='
-  log.info 'Benchmark running time of MLM, GEMMA and MANOVA in a simulation using real GT data'
-  log.info ''
-  log.info 'Usage: '
-  log.info '    nextflow run simulateRT.nf [options]'
-  log.info ''
-  log.info 'Parameters:'
-  log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: data/genotypes.vcf.gz)'
-  log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: data/metadata.tsv)'
-  log.info ' --n INDIVIDUALS             number of individuals (default: 1000)'
-  log.info ' --q RESPONSES               number of response variables (default: 3)'
-  log.info ' --p VARIANTS                number of variants to test (default: 10000)'
-  log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
-  log.info ' --A ANCESTORS               number of ancestors (default: 10)'
-  log.info ' --k NUMBER PC               number of PCs used to correct population stratification (default: 20)'
-  log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0)'
-  log.info ' --s SEED                    seed (default: 123)'
-  log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
-  log.info ' --t OPENBLAS THREADS        OpenBLAS number of threads (default: 1)'
-  log.info ' --gemma GEMMA               run GEMMA in addition to MLM (default: true)'
-  log.info ' --manova MANOVA             run MANOVA in addition to MLM (default: true)'
-  log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
-  log.info ' --dir DIRECTORY             output directory (default: result)'
-  log.info ' --out OUTPUT                output file prefix (default: simulationRT.tsv)'
-  log.info ''
-  exit(1)
+    log.info ''
+    log.info 'SIMULATE RT'
+    log.info '======================================================================='
+    log.info 'Benchmark running time of MANTA, GEMMA and MANOVA in a simulation using real GT data'
+    log.info ''
+    log.info 'Usage: '
+    log.info '    nextflow run simulateRT.nf [options]'
+    log.info ''
+    log.info 'Parameters:'
+    log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: data/genotypes.vcf.gz)'
+    log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: data/metadata.tsv)'
+    log.info ' --n INDIVIDUALS             number of individuals (default: 1000)'
+    log.info ' --q RESPONSES               number of response variables (default: 3)'
+    log.info ' --p VARIANTS                number of variants to test (default: 10000)'
+    log.info ' --b BLOCKSIZE               variants per block (default: 1000)'
+    log.info ' --A ANCESTORS               number of ancestors (default: 10)'
+    log.info ' --k NUMBER PC               number of PCs used to correct population stratification (default: 20)'
+    log.info ' --hg2 REL HERITABILITY      average fraction of variance explained by relatedness across traits (default: 0)'
+    log.info ' --s SEED                    seed (default: 123)'
+    log.info ' --r REPLICATE NUMBER        replicate number (default: 1)'
+    log.info ' --t OPENBLAS THREADS        OpenBLAS number of threads (default: 1)'
+    log.info ' --gemma GEMMA               run GEMMA in addition to MANTA (default: true)'
+    log.info ' --manova MANOVA             run MANOVA in addition to MANTA (default: true)'
+    log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
+    log.info ' --dir DIRECTORY             output directory (default: result)'
+    log.info ' --out OUTPUT                output file prefix (default: simulationRT.tsv)'
+    log.info ''
+    exit(1)
 }
+
 
 /*
  *  Print parameter selection
@@ -88,6 +90,7 @@ log.info "Output directory             : ${params.dir}"
 log.info "Output file prefix           : ${params.out}"
 log.info ''
 
+
 /*
  * Checks 
  */
@@ -106,7 +109,7 @@ if( params.p % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.p, params.b)
 } 
 
-// Check we iterate either over n or over q
+// Check | we iterate either over n or over q
 //if (params['n'] =~ /,/ && params['q'] =~ /,/){
 //   exit 1, "Provide multiple values EITHER for n or q"
 //} 
@@ -125,8 +128,9 @@ if (params['q'] =~ /,/){
     Channel.of(params['q']).set{q_ch}
 }
 
+
 /* 
- *  Subset
+ *  Subset VCF
  */
 
 process subset {
@@ -146,6 +150,7 @@ process subset {
     plink2 --bfile geno.thin --export vcf --out ss --threads 1
     """
 }
+
 
 /*
  *  Generate ancestors
@@ -202,12 +207,13 @@ process simulateGT {
     end=\$(date +%s)
     touch runtime.pca.txt
     for q in {${params.q},}; do
-        for method in {MLM,MANOVA}; do
+        for method in {MANTA,MANOVA}; do
             echo -e "$n\t\$q\t$r\t\$method\tpca\t\$((end-start))" >> runtime.pca.txt
         done
     done
     """
 }
+
 
 /*  
  *  Compute kinship
@@ -236,10 +242,11 @@ process kinship {
     gzip kinship.sXX.txt
     end=\$(date +%s)
     for q in {${params.q},}; do
-            echo -e "$n\t\$q\t$r\tGEMMA\tkinship\t\$((end-start))" >> runtime.kinship.txt
+        echo -e "$n\t\$q\t$r\tGEMMA\tkinship\t\$((end-start))" >> runtime.kinship.txt
     done 
     """
 }
+
 
 /*
  *  Simulate phenotype
@@ -266,18 +273,19 @@ process simulatePT {
     """
 }
 
+
 /*
  *  Timing
  */
 
 if (params.gemma & params.manova){
-    methods_ch = Channel.fromList(["MLM", "GEMMA", "MANOVA"]) 
+    methods_ch = Channel.fromList(["MANTA", "GEMMA", "MANOVA"]) 
 } else if (!params.gemma & params.manova) {
-    methods_ch = Channel.fromList(["MLM", "MANOVA"])
+    methods_ch = Channel.fromList(["MANTA", "MANOVA"])
 } else if (params.gemma & !params.manova) {
-    methods_ch = Channel.fromList(["MLM", "GEMMA"])
+    methods_ch = Channel.fromList(["MANTA", "GEMMA"])
 } else if (!params.gemma & !params.manova) {
-    methods_ch = Channel.fromList(["MLM"])
+    methods_ch = Channel.fromList(["MANTA"])
 } 
 
 process time {
@@ -309,15 +317,15 @@ process time {
         echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
     fi
     """
-    } else if (method == "MLM"){
+    } else if (method == "MANTA"){
     """
     export R_DATATABLE_NUM_THREADS=1
-    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --mlm mlm.assoc.txt --runtime -i $r > runtime.txt
+    manta.R -p $pheno -g $prefix -c $pcs -k ${params.k} --manta manta.assoc.txt --runtime -i $r > runtime.txt
     """
     } else if (method == "MANOVA"){
     """
     export R_DATATABLE_NUM_THREADS=1
-    mlm.R -p $pheno -g $prefix -c $pcs -k ${params.k} --manova manova.assoc.txt --runtime -i $r > runtime.txt
+    manta.R -p $pheno -g $prefix -c $pcs -k ${params.k} --manova manova.assoc.txt --runtime -i $r > runtime.txt
     """
     }
 }
