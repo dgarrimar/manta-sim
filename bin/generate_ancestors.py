@@ -44,7 +44,7 @@ seed(args.seed)
 
 if europeans:
     if popstr:
-        pops = list(df.loc[df['super_pop']=='EUR', 'pop'].unique())
+        pops = list(df.loc[df['super_pop'] == 'EUR', 'pop'].unique())
         for i in range(n):
             pop = pops[randint(0, len(pops)-1)]
             inds = list(df.loc[df['pop'] == pop, 'sample'])

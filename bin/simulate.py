@@ -17,7 +17,7 @@ parser.add_argument("-s", "--seed", type=int, help="Seed for random processes")
 parser.add_argument("-o", "--out", type=str, help="Output VCF")
 parser.add_argument("-m", "--named", action="store_true", help="Named output VCF", default = False)
 
-if len(sys.argv)==1:
+if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
 args = parser.parse_args()
@@ -28,7 +28,7 @@ n = args.individuals
 blocksize = args.blocksize
 
 # Read pickled ancestors dict
-pickle_in = open(args.ancestors_pickle,"rb")
+pickle_in = open(args.ancestors_pickle, "rb")
 ancestors = pickle.load(pickle_in)
 pickle_in.close()
 

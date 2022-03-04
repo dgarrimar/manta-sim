@@ -67,15 +67,8 @@ RUN wget --quiet https://github.com/genetics-statistics/GEMMA/releases/download/
     && chmod +x gemma-0.98.3-linux-static \
     && mv gemma-0.98.3-linux-static /usr/local/bin/gemma
 
-## Install BOLT-LMM
-RUN wget --quiet https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4.tar.gz \
-    && tar zxf BOLT-LMM_v2.3.4.tar.gz \
-    && cd BOLT-LMM_v2.3.4 \
-    && chmod +x bolt \
-    && ln -s $PWD/bolt /usr/local/bin/
-
-## Install mlm
-RUN R -e 'devtools:::install_github("dgarrimar/mlm")'
+## Install MANTA
+RUN R -e 'devtools:::install_github("dgarrimar/manta")'
 
 ## Change ENTRYPOINT
 ENTRYPOINT /bin/bash
