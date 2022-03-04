@@ -186,7 +186,7 @@ process out {
     file(simvcf) from out_ch
     
     output:
-    set file("${params.out}.{bed,bim,fam}"), file("${params.out}.eigen*") into pca_ch
+    set file("${params.out}.{bed,bim,fam}"), file("${params.out}.eigen*") optional true into pca_ch
 
     script:
     if(params.pca)    
