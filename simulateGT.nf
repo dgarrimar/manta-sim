@@ -1,6 +1,22 @@
+#!/bin/env nextflow
+
 /*
- * Simulate genotypes as in P. Casale (thesis)
- * Diego Garrido Martín 
+ * Copyright (c) 2021, Diego Garrido-Martín
+ *
+ * Simulate genotype data as in 10.1038/nmeth.3439
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -8,8 +24,8 @@
  *  Define parameters
  */
 
-params.genotype = 'data/genotypes.vcf.gz'
-params.metadata = 'data/metadata.tsv'
+params.genotype = null
+params.metadata = null
 params.dir = 'result'
 params.out = 'simulationGT'
 params.n = 1000
@@ -29,7 +45,7 @@ params.help = false
 
 if (params.help) {
     log.info ''
-    log.info 'SIMULATE GT'
+    log.info 'S I M U L A T E G T - N F'
     log.info '======================================================================='
     log.info 'Simulate genotypes with different population structure and relatedness'
     log.info ''
@@ -37,8 +53,8 @@ if (params.help) {
     log.info '    nextflow run simulateGT.nf [options]'
     log.info ''
     log.info 'Parameters:'
-    log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: data/genotypes.vcf.gz)'
-    log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: data/metadata.tsv)'
+    log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates'
+    log.info ' --metadata METADATA         metadata from 1000G Phase 3'
     log.info ' --n INDIVIDUALS             number of individuals (default: 1000)'
     log.info ' --chr CHROMOSOME(S)         comma-separated list of chromosomes. If W, whole genome (default: W)'
     log.info ' --l VARIANTS/CHUNK          variants per chunk (default: 10000)'

@@ -1,6 +1,24 @@
+#!/bin/env nextflow
+
 /*
- * Simulation setting to benchmark multivariate methods using real genotype data (running time)
- * Diego Garrido Martín 
+ * Copyright (c) 2021, Diego Garrido-Martín
+ *
+ * Simulation setting to benchmark the running time of multivariate 
+ * methods (MANTA, MANOVA and GEMMA) in the context of multi-trait 
+ * GWAS studies.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -8,8 +26,8 @@
  *  Define parameters
  */
 
-params.genotype = 'data/genotypes.vcf.gz'
-params.metadata = 'data/metadata.tsv'
+params.genotype = null
+params.metadata = null
 params.dir = 'result'
 params.out = 'simulationRT.tsv'
 params.n = 1000
@@ -34,16 +52,16 @@ params.help = false
 
 if (params.help) {
     log.info ''
-    log.info 'SIMULATE RT'
+    log.info 'S I M U L A T E R T - N F'
     log.info '======================================================================='
-    log.info 'Benchmark running time of MANTA, GEMMA and MANOVA in a simulation using real GT data'
+    log.info 'Benchmark running time and RAM usage of MANTA, MANOVA and GEMMA'
     log.info ''
     log.info 'Usage: '
     log.info '    nextflow run simulateRT.nf [options]'
     log.info ''
     log.info 'Parameters:'
-    log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates (default: data/genotypes.vcf.gz)'
-    log.info ' --metadata METADATA         metadata from 1000G Phase 3 (default: data/metadata.tsv)'
+    log.info ' --genotype GENOTYPES        genotype VCF file from 1000G Phase 3 no duplicates'
+    log.info ' --metadata METADATA         metadata from 1000G Phase 3'
     log.info ' --n INDIVIDUALS             number of individuals (default: 1000)'
     log.info ' --q RESPONSES               number of response variables (default: 3)'
     log.info ' --p VARIANTS                number of variants to test (default: 10000)'
