@@ -1,7 +1,7 @@
 #!/bin/env nextflow
 
 /*
- * Copyright (c) 2021, Diego Garrido-Mart<C3><AD>n
+ * Copyright (c) 2021, Diego Garrido-Mart√√≠n
  *
  * Simulation setting II to study the asymptotic distribution of the
  * PERMANOVA test statistic in complex models
