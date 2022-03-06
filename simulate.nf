@@ -1,6 +1,8 @@
 #!/bin/env nextflow
 
 /*
+ * Copyright (c) 2021, Diego Garrido-Martín
+ *
  * Simulation setting to benchmark the TIE and power of multivariate
  * methods (MANTA, MANOVA and GEMMA) in the context of multi-trait
  * GWAS studies.
