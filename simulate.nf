@@ -28,6 +28,7 @@
 // General params
 params.dir = 'result'
 params.out = 'simulation.tsv'
+params.fx = "$baseDir/supp"
 params.help = false
 
 // Simulation params
@@ -97,6 +98,7 @@ if (params.help) {
     log.info ' --adonis PERMUTATIONS       should permutation test be performed? Specify number of permutations (default: 0)'
     log.info ' --cqf CompQuadForm          method employed to compute the quadratic form (default: farebrother-SS)'
     log.info ' --ir IRREPRODUCIBLE         should random seed be set to Sys.time() (default: 0)'
+    log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
     log.info ' --dir DIRECTORY             output directory (default: result)'
     log.info ' --out OUTPUT                output file (default: simulation.tsv)'
     log.info ''
@@ -149,6 +151,7 @@ log.info "Heteroskedasticity           : ${params.hk}"
 log.info "Adonis permutation test      : ${params.adonis}"
 log.info "CompQuadForm                 : ${params.cqf}"
 log.info "Irreproducible               : ${params.ir}"
+log.info "Helper functions             : ${params.fx}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
@@ -244,7 +247,7 @@ process simulation {
 
     script:
     """
-    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -i ${params.ir} -m ${params.gen} -t $t -w ${params.which} -Q ${params.cqf} -o sim.txt
+    ${params.model} -a $a -b $b -n $n -u $u -q $q -d $d -H $hk -v $y_var -c $y_cor -p $p_loc -s $p_sd --p_dist $p_dist -l $lambda -D $c_dist -r $r --C_mean $C_mean --C_var $C_var --adonis ${params.adonis} -S ${params.sim} -i ${params.ir} -m ${params.gen} -t $t -w ${params.which} -Q ${params.cqf} -o sim.txt --fx ${params.fx}
     """
 }
 

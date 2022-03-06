@@ -54,7 +54,9 @@ option_list = list(
     make_option(c("-x","--cpu"), type="numeric", default=10,
                 help="Number of cores [default %default]", metavar="numeric"),
     make_option(c("-o", "--output"), type="character", default=NULL,
-                help="Output file name", metavar="character")
+                help="Output file name", metavar="character"),
+    make_option(c("-f", "--fx"), type="character", default=NULL,
+                help="Path to helper functions", metavar="character")
 )
 
 opt_parser = OptionParser(option_list=option_list);
@@ -86,6 +88,7 @@ w <- opt$which
 output <- opt$output
 chunk <- opt$k_chunk
 cores <- opt$cpu
+fx <- opt$fx
 
 ## 1. Load packages and functions
 
@@ -97,7 +100,7 @@ library(plyr)
 library(copula)
 library(vegan)
 
-source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
+source(sprintf("%s/fx.R", opt$fx))
 
 ## 2. Define parameters 
 
@@ -117,7 +120,7 @@ if (w == "A") {
 
 if (modelSim == "simplex") {
   
-    tbl <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.%s.tsv", pdist), h = T)
+    tbl <- read.table(sprintf("%s/qlocstdev.%s.tsv", fx, pdist), h = T)
     colnames(tbl) <- c("Q", "L", "S")
   
     if (! q %in% unique(tbl$Q)) {

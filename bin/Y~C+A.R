@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 
 ## Evaluation of asymptotic PERMANOVA in complex models
-## Model: Y ~ A + C
+## Model: Y ~ C + A
 
 ##  0. Parse arguments
 
@@ -65,7 +65,9 @@ option_list = list(
     make_option(c("-o", "--output"), type="character", default=NULL,
                 help="Output file name", metavar="character"),
     make_option(c("-i", "--irreproducible"), type="numeric", default=0, 
-                help="Seed with Sys.time() [default %default]")
+                help="Seed with Sys.time() [default %default]"),
+    make_option(c("-f", "--fx"), type="character", default=NULL,
+                help="Path to helper functions", metavar="character")
 )
 
 opt_parser = OptionParser(option_list=option_list);
@@ -100,6 +102,7 @@ adonis <- opt$adonis
 cqf <- opt$QuadForm
 cores <- opt$cpu
 ir <- as.logical(opt$irreproducible)
+fx <- opt$fx
 
 ## 1. Load packages and functions
 
@@ -110,7 +113,7 @@ library(MASS)
 library(plyr)
 library(copula)
 
-source("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/fx.R")
+source(sprintf("%s/fx.R", opt$fx))
 
 ## 2. Define parameters 
 # which here is useless, changes are controlled using delta, r
@@ -122,8 +125,8 @@ if (modelSim == "simplex") {
     set.seed(1)
     rc <- c()
   
-    tbl <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev.%s.tsv", pdist), h = T)
-    tbl2 <- read.table(sprintf("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.%s.tsv", pdist), h = T)
+    tbl <- read.table(sprintf("%s/qlocstdev.%s.tsv", fx, pdist), h = T)
+    tbl2 <- read.table(sprintf("%s/qlocstdev2.%s.tsv", fx, pdist), h = T)
     colnames(tbl) <- colnames(tbl2) <- c("Q", "L", "S")
   
     if (! q %in% unique(tbl$Q) || ! q %in% unique(tbl2$Q)) {
@@ -143,7 +146,7 @@ if (modelSim == "simplex") {
     
     set.seed(1)
     rc <- c()
-    tbl2 <- read.table("/users/rg/dgarrido/PhD/projects/sqtlseeker/paper/simulations/nf/bin/qlocstdev2.multinom.tsv", h = T)
+    tbl2 <- read.table(sprintf("%s/qlocstdev2.%s.tsv", fx, pdist), h = T)
     colnames(tbl2) <- c("Q", "L", "S")
     if (! q %in% unique(tbl2$Q)) {
         stop(sprintf("stdev not precomputed for q = %s", q))
