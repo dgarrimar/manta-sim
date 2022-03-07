@@ -117,30 +117,30 @@ log.info ''
 
 if (!params.genotype) {
     exit 1, "Genotype file not specified."
-} else if (!params.metadata){
+} else if (!params.metadata) {
     exit 1, "Metadata file not specified."
 }
 
 // Total no. of variants and block size should be compatible
 
-if( params.p % params.b != 0) {
+if ( params.p % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.p, params.b)
 } 
 
 // Check | we iterate either over n or over q
-//if (params['n'] =~ /,/ && params['q'] =~ /,/){
-//   exit 1, "Provide multiple values EITHER for n or q"
+//if (params['n'] =~ /,/ && params['q'] =~ /,/) {
+//    exit 1, "Provide multiple values EITHER for n or q"
 //} 
 
 // Expand n (allow k for thousands)
-if (params['n'] =~ /,/){
+if (params['n'] =~ /,/) {
     Channel.fromList(params['n'].replaceAll("k", "000").tokenize(',')).set{n_ch}
 } else {
     Channel.of(params['n'].toString().replaceAll("k", "000")).set{n_ch}
 }
 
 // Expand q
-if (params['q'] =~ /,/){
+if (params['q'] =~ /,/) {
     Channel.fromList(params['q'].tokenize(',')).set{q_ch}
 } else {
     Channel.of(params['q']).set{q_ch}
@@ -296,7 +296,7 @@ process simulatePT {
  *  Timing
  */
 
-if (params.gemma & params.manova){
+if (params.gemma & params.manova) {
     methods_ch = Channel.fromList(["MANTA", "GEMMA", "MANOVA"]) 
 } else if (!params.gemma & params.manova) {
     methods_ch = Channel.fromList(["MANTA", "MANOVA"])
@@ -321,7 +321,7 @@ process time {
 
     script:
     pids = (1..q.toInteger()).join(' ')
-    if(method == "GEMMA"){
+    if (method == "GEMMA") {
     """ 
     paste <(cut -f1-5 $fam) $pheno > tmpfile; mv tmpfile $fam
     export OPENBLAS_NUM_THREADS=${params.t}
@@ -335,12 +335,12 @@ process time {
         echo -e "$n\t$q\t$r\t$method\tgemma\t\$((end-start))" > runtime.txt
     fi
     """
-    } else if (method == "MANTA"){
+    } else if (method == "MANTA") {
     """
     export R_DATATABLE_NUM_THREADS=1
     manta.R -p $pheno -g $prefix -c $pcs -k ${params.k} --manta manta.assoc.txt --runtime -i $r > runtime.txt
     """
-    } else if (method == "MANOVA"){
+    } else if (method == "MANOVA") {
     """
     export R_DATATABLE_NUM_THREADS=1
     manta.R -p $pheno -g $prefix -c $pcs -k ${params.k} --manova manova.assoc.txt --runtime -i $r > runtime.txt

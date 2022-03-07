@@ -157,7 +157,7 @@ log.info "Run GEMMA                    : ${params.gemma}"
 log.info "Output directory             : ${params.dir}"
 log.info "Output file                  : ${params.out}"
 log.info ''
-if(params.PTgen == 'simplex' || params.PTgen == "multinom"){
+if (params.PTgen == 'simplex' || params.PTgen == "multinom") {
     log.info 'Additional parameters'
     log.info '---------------------'
     log.info "Parameter location           : ${params.p_loc}"
@@ -190,7 +190,7 @@ log.info ''
 
 if (!params.GTdir) {
     exit 1, "Genotype data folder not specified."
-} else if (!params.GTgen){
+} else if (!params.GTgen) {
     exit 1, "Genotype data file file not specified."
 }
 
@@ -207,21 +207,21 @@ if (params.p%params.c != 0) {
 
 def grid = [:]
 params.keySet().each {
-    if(it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','b','ub','p_loc','hk','chk','maf','C','m','a']){
+    if (it in ['n','q','PTgen','GTgen','hs2','hg2','varG','varE','varGr','varEr','corG','corE','b','ub','p_loc','hk','chk','maf','C','m','a']) {
         grid[it] = params[it]
     }
 }
 
 def grid2ch = grid.clone() 
 grid.keySet().each {
-    if (grid[it] =~ /,/){
+    if (grid[it] =~ /,/) {
         grid[it] = grid[it].tokenize(',')
         grid2ch[it] = Channel.fromList(grid[it].clone())
     } else if (grid[it] =~ /:/) {
         def (start, end, step) = grid[it].tokenize(':')
         def seq = []
         def val = start.toFloat()
-        while(val.toFloat().round(4) <= end.toFloat().round(4)){
+        while(val.toFloat().round(4) <= end.toFloat().round(4)) {
             seq += val.round(4)
             val += step.toFloat().round(4)
         }
@@ -303,7 +303,7 @@ process kinship {
     """
 }
 
-if("PCA" in grid.C) {
+if ("PCA" in grid.C) {
 
    /*
     *  Genotype PCA
@@ -377,11 +377,11 @@ process simulate_test {
     par_manova = "$par|MANOVA_$C" 
     pids = (1..q.toInteger()).join(' ')
     single = C
-    if(grid.C instanceof List) {
+    if (grid.C instanceof List) {
        single = grid.C[0]
     }
-    if(params.scale == true){scale = "--scale"} else {scale = ""}
-    if(maf != 0){min_maf = "-maf 0.0001"} else {min_maf = "-maf 0.01"}
+    if (params.scale == true) {scale = "--scale"} else {scale = ""}
+    if (maf != 0) {min_maf = "-maf 0.0001"} else {min_maf = "-maf 0.01"}
     """ 
     # Manage chunks
     start=\$(( ($c-1)*(${params.p}/${params.c}) + 1 ))

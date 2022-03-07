@@ -1,4 +1,4 @@
-rmatnorm_C <- function(M, U, V, tol = 1e-12){
+rmatnorm_C <- function(M, U, V, tol = 1e-12) {
     # Sample from Matrix Normal distribution via Cholesky
     # https://en.wikipedia.org/wiki/Matrix_normal_distribution#Drawing_values_from_the_distribution
     # Fast but requires U and V positive definite. 
@@ -16,31 +16,31 @@ rmatnorm_C <- function(M, U, V, tol = 1e-12){
     return(M + crossprod(L1, Z) %*% L2)
 }
 
-getBeta <- function(q, b = "equal", ub = 2, a = q, fr = 0.75){ 
+getBeta <- function(q, b = "equal", ub = 2, a = q, fr = 0.75) { 
   
     # Generate effects
-    if(b == "equal"){ # a <= q
+    if (b == "equal") { # a <= q
         B <- rep(0, q)
         B[1:a] <- 1
         return(matrix(B, 1, q))
-    } else if (b == "unequal"){
+    } else if (b == "unequal") {
         return(matrix(seq(from = 1, to = ub, length.out = q), 1, q))
-    } else if (b == "block"){
+    } else if (b == "block") {
         w <- max(1, round(fr*q))
         return(matrix(c(rep(1, ceiling(w/2)), rep(-1, floor(w/2)), rep(0, q-w)), 1, q))
-    } else if (b == "simplex" || b == "multinom"){
+    } else if (b == "simplex" || b == "multinom") {
         return(matrix(c(1, -rep(1/(q-1), q-1)), 1, q))
     }
 }
 
-getCov <- function(q, v, c, u, B, tol = 1e-10){
+getCov <- function(q, v, c, u, B, tol = 1e-10) {
   
     if (v == 'random') {
         sigma <- tcrossprod(matrix(rnorm(q^2), q, q))
         return(sigma)
-    } else if(v == 'equal'){
+    } else if (v == 'equal') {
         vars <- rep(1, q)
-    } else if (v == 'unequal'){
+    } else if (v == 'unequal') {
         # vars <- (q:1)/sum(q:1)
         vars <- seq(from = 1, to = u, length.out = q)
     } else {
@@ -52,14 +52,14 @@ getCov <- function(q, v, c, u, B, tol = 1e-10){
     diag(R) <- rep(1, q)
     sigma <- R * tcrossprod(sqrt(vars))
   
-    if(any(eigen(sigma, only.values = T)$values < tol)){
+    if (any(eigen(sigma, only.values = T)$values < tol)) {
         stop("Covariance matrix should be positive definite.")
     }
   
     return(sigma)
 }
 
-sim.copula <- function(n, sigma, distdef){
+sim.copula <- function(n, sigma, distdef) {
   
     # Obtain correlation matrix
     q <- nrow(sigma)
@@ -81,9 +81,9 @@ sim.copula <- function(n, sigma, distdef){
                   "norm" = list(mean = params[1], sd = params[2]))
     myCop <- normalCopula(param = P2p(R), dim = q, dispstr = "un")
     myMvd <- mvdc(copula = myCop, margins = rep(distrib[1], q),
-                paramMargins = rep(list(mar), q))
+                  paramMargins = rep(list(mar), q))
     E <- rMvdc(n, myMvd) # This has sigma = R
-    E <- t(apply(scale(E),1,function(e){e*sqrt(diag(sigma))})) 
+    E <- t(apply(scale(E), 1, function(e){e*sqrt(diag(sigma))})) 
   
     return(E)
 }
@@ -91,43 +91,43 @@ sim.copula <- function(n, sigma, distdef){
 step2h1 <- function(p0, e, step) {
     
     # e should be one vertex of the simplex
-    i <- which(e==1)
-    if(p0[i] + step > 1 || p0[i] + step < 0) {
+    i <- which(e == 1)
+    if (p0[i] + step > 1 || p0[i] + step < 0) {
       stop("H1 out of the simplex.")
     } 
     p1 <- p0
     p1[i] <- p0[i] + step
-    p1[-i] <- p0[-i] * (1 - step/(1-p0[i]))
+    p1[-i] <- p0[-i] * (1 - step/(1 - p0[i]))
     return(p1)
 }
 
-betasd <- function(a,b){
+betasd <- function(a,b) {
     sqrt((a*b) / ( (a+b)^2 * (a+b+1) ))
 }
 
-gammasd <- function(shape, scale){
+gammasd <- function(shape, scale) {
     sqrt(shape*scale^2)
 }
 
-sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL, dist = "norm"){
+sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL, dist = "norm") {
   
-    if(is.null(Y)){
+    if (is.null(Y)) {
         Y <- t(matrix(p0, nrow = q, ncol = n))
     }
   
     elist <- list()
-    for (i in 1:q){
+    for (i in 1:q) {
         elist[[i]] <- rep(0, q)
         elist[[i]][i] <- 1 
     }
   
-    for (i in 1:n){
+    for (i in 1:n) {
     
-        if(dist == "norm"){
+        if (dist == "norm") {
             steps <- rnorm(q, mean = 0, sd = stdev) 
-        } else if(dist == "gamma"){
+        } else if (dist == "gamma") {
             steps <- (rgamma(q, shape = 1, scale = 100) - 1)/gammasd(1, 100)*stdev
-        } else if(dist == "beta"){
+        } else if (dist == "beta") {
             steps <- (rbeta(q, shape1 = 0.5, shape2 = 0.5) - 0.5)/betasd(0.5, 0.5)*stdev
         } else {
             stop (sprintf("Unknown dist '%s'.", dist))
@@ -136,10 +136,10 @@ sim.simplex <- function(q, n, p0, stdev, tol = 1e-10, Y = NULL, dist = "norm"){
         elist <- elist[sample(1:q)]
         for (j in 1:q) {
             k <- which(elist[[j]] == 1)
-            if (steps[j] < -Y[i, k]){
+            if (steps[j] < -Y[i, k]) {
                 steps[j] <- -Y[i, k] + tol
                 warning("One observation out of the simplex was corrected.")
-            } else if(steps[j] > (1 - Y[i,k]) ){
+            } else if (steps[j] > (1 - Y[i,k])) {
                 steps[j] <- (1 - Y[i, k]) - tol
                 warning("One observation out of the simplex was corrected.")
             }
