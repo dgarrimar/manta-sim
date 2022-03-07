@@ -2,7 +2,7 @@ FROM rocker/r-ver:3.5.2
 
 LABEL maintainer "Diego Garrido-Martín <diego.garrido@crg.eu>" \
       version "1.0.0" \
-      description "Docker image for manta-sim (sim2)"
+      description "Docker image for manta-sim (sim, sim2)"
 
 RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 # R:devtools dependencies
@@ -37,7 +37,7 @@ RUN wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz \
     && make install
     
 ## Install R packages
-RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula", "R.utils"), repos="http://cloud.r-project.org/")'
+RUN R -e 'install.packages(c("devtools", "optparse", "data.table", "seqminer", "vegan", "BEDMatrix", "copula", "R.utils", "mvnfast"), repos="http://cloud.r-project.org/")'
 
 ## Install python3 packages
 RUN pip3 install pandas scipy
