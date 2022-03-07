@@ -1,0 +1,9 @@
+log
+run.sh
+trace*
+work*
+result*
+.nextflow*
+docker/.docker
+singularity
+
