@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/bin/env Rscript
 
 ## Evaluation of asymptotic PERMANOVA in complex models
 ## Model: Y ~ C + A
@@ -108,9 +108,7 @@ fx <- opt$fx
 
 library(CompQuadForm)
 library(car)
-library(MCMCpack)
 library(MASS)
-library(plyr)
 library(copula)
 
 source(sprintf("%s/fx.R", opt$fx))

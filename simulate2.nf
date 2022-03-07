@@ -1,7 +1,7 @@
 #!/bin/env nextflow
 
 /*
- * Copyright (c) 2021, Diego Garrido-Mart�ín
+ * Copyright (c) 2021, Diego Garrido-Martín
  *
  * Simulation setting II to study the asymptotic distribution of the
  * PERMANOVA test statistic in complex models
@@ -27,7 +27,7 @@
 
 // General params
 params.dir = 'result2'
-params.out = 'simulation2.tsv'
+params.out = 'simulation2'
 params.fx = "$baseDir/supp"
 params.help = false
 
@@ -78,7 +78,7 @@ if (params.help) {
     log.info ' --a LEVELS_A                levels of factor A (default: 2)'
     log.info ' --b LEVELS_B                levels of factor B (default: 3)'
     log.info ' --n SAMPLE_SIZE             total number of samples (default: 100)'
-    log.info ' --u UNBALANCE               unbalance, 1 is balanced. (default: 1)'
+    log.info ' --u UNBALANCE               unbalance, 1 is balanced (default: 1)'
     log.info ' --q RESPONSES               number of response variables (default: 3)'
     log.info ' --t TRANSFORM               transform response variables: none, sqrt or log (default: none)'
     log.info ' --which WHICH               which factor changes in H1: A, B or AB (default: B)'
@@ -90,7 +90,7 @@ if (params.help) {
     log.info ' --hk HETEROSKEDASTICITY     heteroskedasticity, 1 is homoskedastic (default: 1)'
     log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
     log.info ' --dir DIRECTORY             output directory (default: result2)'
-    log.info ' --out OUTPUT                output file (default: simulation2.tsv)'
+    log.info ' --out OUTPUT                output files prefix (default: simulation2)'
     log.info ''
     log.info 'Additional parameters for generation = mvnorm:'
     log.info ' --y_var VARIANCE            variance of response variables: equal or unequal (default: equal)'
@@ -137,7 +137,7 @@ log.info "Change in H1 (delta)         : ${params.delta}"
 log.info "Heteroskedasticity           : ${params.hk}"
 log.info "Helper functions             : ${params.fx}"
 log.info "Output directory             : ${params.dir}"
-log.info "Output file                  : ${params.out}"
+log.info "Output files prefix          : ${params.out}"
 log.info ''
 if (params.gen == 'mvnorm') {
   log.info 'Additional parameters'

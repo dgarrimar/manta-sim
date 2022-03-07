@@ -86,7 +86,7 @@ if (params.help) {
     log.info ' --a LEVELS_A                levels of factor A (default: 2)'
     log.info ' --b LEVELS_B                levels of factor B (default: 3)'
     log.info ' --n SAMPLE_SIZE             total number of samples (default: 100)'
-    log.info ' --u UNBALANCE               unbalance, 1 is balanced. (default: 1)'
+    log.info ' --u UNBALANCE               unbalance, 1 is balanced (default: 1)'
     log.info ' --q RESPONSES               number of response variables (default: 3)'
     log.info ' --t TRANSFORM               transform response variables: none, sqrt or log (default: none)'
     log.info ' --which WHICH               which factor changes in H1: A, B or AB (default: B)'

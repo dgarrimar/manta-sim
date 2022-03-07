@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/bin/env Rscript
 
 ## Evaluation of asymptotic PERMANOVA in complex models
 ## Model: Y ~ A + B + AB
@@ -73,7 +73,7 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-if (is.null(opt$output)){
+if (is.null(opt$output)) {
     print_help(opt_parser)
     stop("An output file must be supplied\n", call.=FALSE)
 }
@@ -107,9 +107,7 @@ fx <- opt$fx
 
 library(CompQuadForm)
 library(car)
-library(MCMCpack)
 library(MASS)
-library(plyr)
 library(copula)
 
 source(sprintf("%s/fx.R", opt$fx))
@@ -135,7 +133,7 @@ if (modelSim == "simplex") {
     tbl <- read.table(sprintf("%s/qlocstdev.%s.tsv", fx, pdist), h = T)
     colnames(tbl) <- c("Q", "L", "S")
   
-    if(! q %in% unique(tbl$Q)){
+    if (! q %in% unique(tbl$Q)) {
         stop(sprintf("stdev not precomputed for q = %s", q))
     } 
  
@@ -182,11 +180,11 @@ for (i in 1:S) {
         stop(sprintf("Unknown option: modelSim = '%s'.", modelSim))
     }
   
-    if (transf == "sqrt"){
+    if (transf == "sqrt") {
         Y <- sqrt(Y)
-    } else if (transf == "log"){
+    } else if (transf == "log") {
         Y <- log(Y+1)
-    } else if (transf == "none"){
+    } else if (transf == "none") {
     
     } else {
         stop(sprintf("Unknown option: transf = '%s'.", transf))

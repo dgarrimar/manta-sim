@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/bin/env Rscript
 
 ## Evaluation of asymptotic PERMANOVA in complex models (II)
 ## Model: Y ~ A + B + AB
@@ -62,7 +62,7 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-if (is.null(opt$output)){
+if (is.null(opt$output)) {
     print_help(opt_parser)
     stop("An output file must be supplied\n", call.=FALSE)
 }
@@ -94,9 +94,7 @@ fx <- opt$fx
 
 library(CompQuadForm)
 library(car)
-library(MCMCpack)
 library(MASS)
-library(plyr)
 library(copula)
 library(vegan)
 
@@ -277,9 +275,9 @@ if (chunk != 0) {
     # ado$f.perms <- matrix(NA, nrow = 1, ncol = 7)
   
     # Yp <- Y
-    # for (p in 1:S){
+    # for (p in 1:S) {
     #     print(p)
-    #     for (i in 1:b){Yp[B == i, ] <- Y[sample(which(B == i)),]}
+    #     for (i in 1:b) {Yp[B == i, ] <- Y[sample(which(B == i)),]}
     #     fit <- lm(Yp ~ A + B + A:B)
     #     R <- fit$residuals
     #     UU <- Anova(fit, type = "II") # SS type II

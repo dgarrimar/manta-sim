@@ -4,7 +4,8 @@
  * Copyright (c) 2021, Diego Garrido-Martín
  *
  * Simulation setting to study the running time of the asymptotic
- * PERMANOVA test with respect to permutations
+ * PERMANOVA test (as implemented in manta) with respect to 
+ * permutations (as implemented in vegan::adonis)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +29,7 @@
 // General params
 params.dir = 'result'
 params.out = 'runtime.tsv'
+params.fx = "$baseDir/supp"
 params.help = false
 
 // Simulation params
@@ -56,6 +58,7 @@ if (params.help) {
     log.info ' --q RESPONSES               number of response variables (default: 3)'
     log.info ' --P PERMUTATIONS            number of permutations (default: 1000)'
     log.info ' --r REPLICATES              number of replicates (default: 1)'
+    log.info ' --fx FUNCTIONS              path to helper functions and precomputed datasets (default: ./supp)'
     log.info ' --dir DIRECTORY             output directory (default: result)'
     log.info ' --out OUTPUT                output file (default: runtime.tsv)'
     log.info ''
@@ -76,6 +79,9 @@ log.info "Total sample size            : ${params.n}"
 log.info "Number of Y variables        : ${params.q}"
 log.info "Number of permutations       : ${params.P}"
 log.info "Number of replicates         : ${params.r}"
+log.info "Helper functions             : ${params.fx}"
+log.info "Output directory             : ${params.dir}"
+log.info "Output file                  : ${params.out}"
 log.info ''
 
 
