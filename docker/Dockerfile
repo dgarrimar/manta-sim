@@ -2,7 +2,7 @@ FROM rocker/r-ver:3.5.2
 
 LABEL maintainer "Diego Garrido-Martín <diego.garrido@crg.eu>" \
       version "1.0.0" \
-      description "Docker image for manta-sim (sim3)"
+      description "Docker image for manta-sim (sim2)"
 
 RUN apt-get update --fix-missing -qq && apt-get install -y -q \
 # R:devtools dependencies
