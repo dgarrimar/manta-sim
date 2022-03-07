@@ -1,7 +1,7 @@
 step2h1 <- function(p0, e, step) {
     # e should be one vertex of the simplex
     i <- which(e == 1)
-    if(p0[i] + step > 1 || p0[i] + step < 0) {
+    if (p0[i] + step > 1 || p0[i] + step < 0) {
         stop("H1 out of the simplex.")
     } 
     p1 <- p0
@@ -123,7 +123,7 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, hk2, Var, Cor) {
   
     if (Var == "equal") {
         vars <- rep(1, q)
-    } else if (Var == "unequal"){
+    } else if (Var == "unequal") {
         vars <- (q:1)/sum(q:1)
     } else {
         stop(sprintf("Unknown option: Var = '%s'.", Var))
@@ -146,7 +146,7 @@ Sim.mvnorm <- function(B, q, n, mu, delta, hk, hk2, Var, Cor) {
     
     } else {
     
-        if(any(grepl(":", B))){ # Then we are changing the interaction
+        if (any(grepl(":", B))) { # Then we are changing the interaction
             levs <- levels(B)
             b <- as.numeric(unlist(strsplit(levs[length(levs)], ":")))[2]  # Recover b
             B <- mapvalues(B, from = levs, to = 1:length(levs))            # Relevel
@@ -217,9 +217,9 @@ sim.copula <- function(q, n, v, c, distdef, tol = 1e-10) {
 
 Sim.copula <- function(B, q, n, mu, delta, hk, Var, Cor, dd) {
   
-    if(Var == "equal"){
+    if (Var == "equal") {
         vars <- rep(1, q)
-    } else if (Var == "unequal"){
+    } else if (Var == "unequal") {
         vars <- (q:1)/sum(q:1)
     } else {
         stop(sprintf("Unknown option: Var = '%s'.", Var))

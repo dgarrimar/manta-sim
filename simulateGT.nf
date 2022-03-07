@@ -100,13 +100,13 @@ log.info ''
 
 if (!params.genotype) {
     exit 1, "Genotype file not specified."
-} else if (!params.metadata){
+} else if (!params.metadata) {
     exit 1, "Metadata file not specified."
 }
 
 // Chunk and block sizes should be compatible
 
-if( params.l % params.b != 0) {
+if ( params.l % params.b != 0) {
     exit 1, sprintf('Error: %s %% %s != 0', params.l, params.b)
 } 
 
@@ -205,7 +205,7 @@ process out {
     set file("${params.out}.{bed,bim,fam}"), file("${params.out}.eigen*") optional true into pca_ch
 
     script:
-    if(params.pca)    
+    if (params.pca)    
     """
     ids=\$(for (( i = 1; i <= $params.n; i++ )); do echo -ne "S\$i\t" ; done | sed 's,\t\$,,')
     sed -i "1 s,^,#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t\$ids\\n," $simvcf        
